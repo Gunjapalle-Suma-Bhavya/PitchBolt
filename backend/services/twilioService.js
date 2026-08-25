@@ -43,16 +43,21 @@ const makeOutboundCall = async (toPhoneNumber, initialProduct = '') => {
   }
 
   try {
-    const call = await client.calls.create({
+    // Simplified parameters for Twilio Trial & Paid Accounts
+    const callParams = {
       url: webhookUrl,
       to: formattedTo,
-      from: fromNumber,
-      method: 'POST'
-    });
-    console.log(`[Twilio Call Started] Call SID: ${call.sid} to ${formattedTo}`);
+      from: fromNumber
+    };
+
+    const call = await client.calls.create(callParams);
+    console.log(`[Twilio Call Dispatched] Call SID: ${call.sid} to ${formattedTo}`);
     return { success: true, callSid: call.sid, simulated: false };
   } catch (error) {
     console.error(`[Twilio Call Error] ${error.message}`);
+    if (error.message.includes('disallowed parameters') || error.message.includes('trial accounts')) {
+      console.log(`[Twilio Notice] Twilio Trial Account restriction detected. Ensure ${formattedTo} is added to Verified Caller IDs in Twilio Console.`);
+    }
     throw error;
   }
 };
