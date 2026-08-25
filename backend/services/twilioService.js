@@ -12,17 +12,32 @@ const getTwilioClient = () => {
 };
 
 /**
+ * Helper to auto-format phone numbers (e.g. 9392223188 -> +919392223188)
+ */
+const formatPhoneNumber = (numStr) => {
+  let clean = (numStr || '').trim().replace(/[\s-]/g, '');
+  if (/^\d{10}$/.test(clean)) {
+    return `+91${clean}`;
+  }
+  if (!clean.startsWith('+')) {
+    return `+${clean}`;
+  }
+  return clean;
+};
+
+/**
  * Trigger an outbound call to a customer's phone number
  */
 const makeOutboundCall = async (toPhoneNumber, initialProduct = '') => {
   const client = getTwilioClient();
-  const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+  const fromNumber = process.env.TWILIO_PHONE_NUMBER || '+17372212163';
   const publicBackendUrl = process.env.PUBLIC_BACKEND_URL || 'http://localhost:5000';
+  const formattedTo = formatPhoneNumber(toPhoneNumber);
 
   const webhookUrl = `${publicBackendUrl}/api/twilio/voice/gather?product=${encodeURIComponent(initialProduct)}`;
 
   if (!client) {
-    console.log(`[Twilio Simulation] Outbound call requested to ${toPhoneNumber} with product "${initialProduct}"`);
+    console.log(`[Twilio Simulation] Outbound call requested to ${formattedTo} with product "${initialProduct}"`);
     const mockCallSid = `CA_SIMULATED_${Date.now()}`;
     return { success: true, callSid: mockCallSid, simulated: true };
   }
@@ -30,11 +45,11 @@ const makeOutboundCall = async (toPhoneNumber, initialProduct = '') => {
   try {
     const call = await client.calls.create({
       url: webhookUrl,
-      to: toPhoneNumber,
+      to: formattedTo,
       from: fromNumber,
       method: 'POST'
     });
-    console.log(`[Twilio Call Started] Call SID: ${call.sid} to ${toPhoneNumber}`);
+    console.log(`[Twilio Call Started] Call SID: ${call.sid} to ${formattedTo}`);
     return { success: true, callSid: call.sid, simulated: false };
   } catch (error) {
     console.error(`[Twilio Call Error] ${error.message}`);
@@ -53,7 +68,7 @@ const sendWhatsAppMessage = async (toPhoneNumber, messageBody) => {
     fromWhatsApp = `whatsapp:${fromWhatsApp}`;
   }
 
-  let formattedTo = toPhoneNumber.trim();
+  let formattedTo = formatPhoneNumber(toPhoneNumber);
   if (!formattedTo.startsWith('whatsapp:')) {
     formattedTo = `whatsapp:${formattedTo}`;
   }
