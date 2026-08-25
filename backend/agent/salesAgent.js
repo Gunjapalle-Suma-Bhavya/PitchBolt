@@ -12,10 +12,14 @@ const getLLM = () => {
     console.warn('[LangChain Warning] OPENAI_API_KEY not configured. Falling back to structured response generator.');
     return null;
   }
+
+  const baseURL = process.env.OPENAI_BASE_URL || (apiKey.startsWith('sk-live-') || apiKey.startsWith('sk-or-') ? 'https://openrouter.ai/api/v1' : undefined);
+
   return new ChatOpenAI({
-    modelName: 'gpt-4o-mini',
+    modelName: process.env.OPENAI_MODEL || 'gpt-4o-mini',
     temperature: 0.7,
-    openAIApiKey: apiKey
+    openAIApiKey: apiKey,
+    configuration: baseURL ? { baseURL } : undefined
   });
 };
 
