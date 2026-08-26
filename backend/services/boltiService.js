@@ -6,6 +6,7 @@ const { makeOutboundCall: makeTwilioCall } = require('./twilioService');
  */
 const makeBoltiCall = async (toPhoneNumber, foodItem = 'Special Hyderabadi Dum Biryani') => {
   const apiKey = process.env.BOLTI_API_KEY;
+  const agentId = process.env.BOLTI_AGENT_ID || 'b009b044-e9e4-4e09-8f34-a7b143f40a65';
   const baseUrl = process.env.BOLTI_BASE_URL || 'https://api.bolna.dev';
 
   let formattedTo = (toPhoneNumber || '').trim().replace(/[\s-]/g, '');
@@ -15,7 +16,7 @@ const makeBoltiCall = async (toPhoneNumber, foodItem = 'Special Hyderabadi Dum B
     formattedTo = `+${formattedTo}`;
   }
 
-  console.log(`[Bolti AI Voice] Triggering Swiggy Food AI Call to ${formattedTo} for "${foodItem}"...`);
+  console.log(`[Bolti AI Voice] Triggering Agent ${agentId} Call to ${formattedTo} for "${foodItem}"...`);
 
   if (!apiKey || apiKey.includes('your_')) {
     console.warn('[Bolti Warning] BOLTI_API_KEY not configured. Operating in simulation mode.');
@@ -28,43 +29,26 @@ const makeBoltiCall = async (toPhoneNumber, foodItem = 'Special Hyderabadi Dum B
   }
 
   try {
-    // Dispatch outbound AI call to Bolti / Bolna REST API
+    // Official Bolna / Bolti REST API payload format using registered Agent ID
+    const payload = {
+      agent_id: agentId,
+      recipient_phone_number: formattedTo,
+      user_data: {
+        food_item: foodItem,
+        delivery_time: '25-30 mins',
+        swiggy_offer: 'Special Discount Active'
+      }
+    };
+
     const response = await axios.post(
       `${baseUrl}/call`,
-      {
-        recipient_phone_number: formattedTo,
-        agent_config: {
-          agent_name: 'Swiggy FoodieAI Voice Agent',
-          tasks: [
-            {
-              task_type: 'conversation',
-              tools_config: {
-                llm_agent: {
-                  max_tokens: 150,
-                  model: 'gpt-4o-mini',
-                  family: 'openai'
-                },
-                synthesizer: {
-                  provider: 'cartesia',
-                  voice: 'indian_female_en',
-                  language: 'en'
-                },
-                transcriber: {
-                  provider: 'deepgram',
-                  language: 'en-IN'
-                }
-              },
-              system_prompt: `You are FoodieAI, an energetic Swiggy Food Representative calling to offer a special discount on ${foodItem}. Answer questions about ingredients, delivery time (25-30 mins), and price. If interested, confirm that you are sending the Swiggy checkout link to WhatsApp!`
-            }
-          ]
-        }
-      },
+      payload,
       {
         headers: {
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json'
         },
-        timeout: 4000
+        timeout: 5000
       }
     );
 
