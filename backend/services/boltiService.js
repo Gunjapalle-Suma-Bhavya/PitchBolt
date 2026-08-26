@@ -4,8 +4,8 @@ const axios = require('axios');
  * Bolti / Bolna AI Voice Call Dispatch Service (Pure Bolti AI Integration)
  */
 const makeBoltiCall = async (toPhoneNumber, foodItem = 'Special Hyderabadi Dum Biryani') => {
-  const apiKey = process.env.BOLTI_API_KEY || 'mcp_TzQCdvqxUHZchYO603Y_ltLXJho1fyoBCUvsYsdylF4';
-  const agentId = process.env.BOLTI_AGENT_ID || 'b009b044-e9e4-4e09-8f34-a7b143f40a65';
+  const apiKey = (process.env.BOLTI_API_KEY || 'mcp_TzQCdvqxUHZchYO603Y_ltLXJho1fyoBCUvsYsdylF4').trim();
+  const agentId = (process.env.BOLTI_AGENT_ID || 'b009b044-e9e4-4e09-8f34-a7b143f40a65').trim();
   const baseUrl = process.env.BOLTI_BASE_URL || 'https://api.bolna.dev';
 
   let formattedTo = (toPhoneNumber || '').trim().replace(/[\s-]/g, '');
@@ -28,13 +28,12 @@ const makeBoltiCall = async (toPhoneNumber, foodItem = 'Special Hyderabadi Dum B
   };
 
   try {
-    // Send request with both Authorization Bearer and X-API-KEY for full gateway compatibility
+    // Official Bolna API authentication header: X-API-KEY: <apiKey>
     const response = await axios.post(
       `${baseUrl}/call`,
       payload,
       {
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
           'X-API-KEY': apiKey,
           'x-api-key': apiKey,
           'Content-Type': 'application/json'
@@ -58,7 +57,6 @@ const makeBoltiCall = async (toPhoneNumber, foodItem = 'Special Hyderabadi Dum B
     const statusCode = error.response?.status;
     console.error(`[Bolti API Error ${statusCode || 'Network'}] Details:`, JSON.stringify(errorData));
 
-    // Provide clean diagnostic response
     return {
       success: true,
       callSid: `BOLTI_CALL_${Date.now()}`,
