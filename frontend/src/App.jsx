@@ -54,7 +54,7 @@ export default function App() {
   const handleTriggerCall = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setCallStatusMsg('📞 Calling your mobile phone now via Twilio Voice...');
+    setCallStatusMsg('📞 Dispatching Swiggy Food AI Call via Bolti AI Voice...');
     try {
       const res = await axios.post('/api/calls/trigger', {
         phoneNumber,
@@ -62,11 +62,11 @@ export default function App() {
       });
       if (res.data?.success) {
         setActiveCallSid(res.data.callSid);
-        setCallStatusMsg('✅ Call Dispatched! Answer your mobile phone (+919121447422).');
+        setCallStatusMsg(`✅ Swiggy Food AI Call Dispatched via ${res.data.provider || 'Bolti AI'} to ${phoneNumber}!`);
         setActiveTranscript([
           {
             role: 'assistant',
-            content: `Hello! I am calling from E-Commerce & Swiggy Deals regarding ${productQuery}. Are you interested in hearing a 1-minute quick special offer?`
+            content: `Hello! I am calling from Swiggy Food Delivery regarding the ${productQuery}. Are you interested in hearing a 1-minute quick special discount offer?`
           }
         ]);
         fetchLogs();
@@ -91,7 +91,7 @@ export default function App() {
 
     try {
       const res = await axios.post('/api/calls/simulate-speech', {
-        callSid: activeCallSid || `CALL_SIM_${Date.now()}`,
+        callSid: activeCallSid || `BOLTI_SIM_${Date.now()}`,
         phoneNumber,
         userSpeech: userText,
         productQuery
@@ -105,7 +105,7 @@ export default function App() {
         ]);
 
         if (res.data.whatsappSent) {
-          setCallStatusMsg('🎉 Customer Interested! Instant WhatsApp Message Dispatched!');
+          setCallStatusMsg('🎉 Customer Interested! Instant Swiggy Food WhatsApp Link Dispatched!');
         }
         fetchLogs();
       }
@@ -118,21 +118,21 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Header */}
+      {/* Top Header */}
       <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur px-6 py-4 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-50">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-emerald-600 rounded-2xl text-white shadow-lg shadow-emerald-600/30">
-            <PhoneCall className="w-6 h-6 animate-pulse" />
+          <div className="p-3 bg-orange-600 rounded-2xl text-white shadow-lg shadow-orange-600/30">
+            <Utensils className="w-6 h-6 animate-pulse" />
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-              VoxCommerce AI Call & Recommendation Agent
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                Live Swiggy & E-Commerce
+              FoodieAI — Swiggy Food Ordering Voice Agent
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                Bolti AI Voice + Swiggy MCP
               </span>
             </h1>
             <p className="text-xs text-slate-400">
-              Calls your mobile phone, recommends Swiggy food & e-commerce deals, and sends instant WhatsApp buy links!
+              AI Voice agent calling mobile phones for Swiggy Food recommendations & instant WhatsApp checkout links!
             </p>
           </div>
         </div>
@@ -142,33 +142,33 @@ export default function App() {
             <Zap className="w-3.5 h-3.5 text-amber-400" /> LangGraph & OpenAI
           </span>
           <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1.5">
-            <MessageSquare className="w-3.5 h-3.5 text-emerald-400" /> Twilio Voice & WhatsApp
+            <PhoneCall className="w-3.5 h-3.5 text-orange-400" /> Bolti AI Voice Call
           </span>
           <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1.5">
-            <Utensils className="w-3.5 h-3.5 text-orange-400" /> Swiggy MCP
+            <MessageSquare className="w-3.5 h-3.5 text-emerald-400" /> WhatsApp Direct Link
           </span>
         </div>
       </header>
 
-      {/* Main Grid */}
+      {/* Main Grid Layout */}
       <main className="flex-1 p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-7xl w-full mx-auto">
         
-        {/* Left Column: Easy Call Launcher */}
+        {/* Left Column: Swiggy Food Call Dispatcher */}
         <section className="lg:col-span-5 flex flex-col gap-6">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Phone className="w-5 h-5 text-emerald-400" /> Step 1: Call Mobile Phone
+                <Utensils className="w-5 h-5 text-orange-400" /> Step 1: Order Swiggy Food
               </h2>
-              <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
-                Twilio Live Voice
+              <span className="text-xs px-2.5 py-1 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20 font-medium">
+                Bolti Voice API
               </span>
             </div>
 
             <form onSubmit={handleTriggerCall} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-                  Mobile Phone Number
+                  Customer Mobile Phone Number
                 </label>
                 <input
                   type="text"
@@ -176,16 +176,16 @@ export default function App() {
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   placeholder="+919121447422"
                   required
-                  className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-sm text-white font-mono focus:outline-none focus:border-emerald-500 transition"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-sm text-white font-mono focus:outline-none focus:border-orange-500 transition"
                 />
                 <p className="text-[11px] text-slate-500 mt-1">
-                  Format: International (+91 for India, e.g. +919121447422)
+                  Supports 10-digit Indian numbers (e.g. 9121447422 or 9392223188)
                 </p>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-                  Select Product / Food Offer
+                  Select Swiggy Food Offer
                 </label>
                 <select
                   value={productQuery}
@@ -193,43 +193,44 @@ export default function App() {
                     setProductQuery(e.target.value);
                     searchProduct(e.target.value);
                   }}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500 transition"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-orange-500 transition"
                 >
                   <option value="Special Hyderabadi Dum Biryani">🍗 Swiggy: Special Hyderabadi Dum Biryani (₹349)</option>
-                  <option value="Paneer Butter Masala Combo">🍲 Swiggy: Paneer Butter Masala Combo (₹289)</option>
-                  <option value="Sony WH-1000XM5 Headphones">🎧 Amazon: Sony WH-1000XM5 ANC Headphones (₹29,990)</option>
-                  <option value="Apple iPhone 15 Pro">📱 Flipkart: Apple iPhone 15 Pro 128GB (₹1,29,900)</option>
+                  <option value="Paneer Butter Masala Combo">🍲 Swiggy: Paneer Butter Masala Combo + Naan (₹289)</option>
+                  <option value="Gourmet Cheese Pepperoni Pizza">🍕 Swiggy: Gourmet Cheese Pepperoni Pizza (₹499)</option>
+                  <option value="Crispy Chicken Burger Meal">🍔 Swiggy: Crispy Chicken Burger + Fries (₹249)</option>
+                  <option value="Gulab Jamun & Ice Cream Dessert">🍨 Swiggy: Gulab Jamun & Ice Cream Dessert (₹149)</option>
                 </select>
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-4 px-6 rounded-2xl shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-3 transition transform active:scale-95"
+                className="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold py-4 px-6 rounded-2xl shadow-xl shadow-orange-600/30 flex items-center justify-center gap-3 transition transform active:scale-95"
               >
-                <PhoneCall className="w-5 h-5" />
-                {loading ? 'Calling Mobile Phone...' : '📞 Call My Phone Now'}
+                <Utensils className="w-5 h-5" />
+                {loading ? 'Calling Mobile Phone via Bolti...' : '🍗 Call Mobile Phone & Order Food'}
               </button>
             </form>
 
             {callStatusMsg && (
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-emerald-300 flex items-start gap-3">
-                <AlertCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-orange-300 flex items-start gap-3">
+                <AlertCircle className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
                 <span className="font-medium leading-relaxed">{callStatusMsg}</span>
               </div>
             )}
           </div>
 
-          {/* Active Product Preview Card */}
+          {/* Swiggy Food MCP Preview Card */}
           {productDetails && (
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl">
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
-                <ShoppingBag className="w-4 h-4 text-emerald-400" /> Active Recommendation Preview
+                <ShoppingBag className="w-4 h-4 text-orange-400" /> Active Swiggy Dish Recommendation
               </h2>
               <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800 space-y-2">
                 <div className="flex justify-between items-start">
                   <h3 className="font-bold text-white text-sm">{productDetails.title}</h3>
-                  <span className="text-xs font-bold bg-emerald-500/20 text-emerald-300 px-2.5 py-1 rounded-lg border border-emerald-500/30">
+                  <span className="text-xs font-bold bg-orange-500/20 text-orange-300 px-2.5 py-1 rounded-lg border border-orange-500/30">
                     {productDetails.price}
                   </span>
                 </div>
@@ -240,9 +241,9 @@ export default function App() {
                     href={productDetails.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-emerald-400 hover:underline flex items-center gap-1 font-semibold"
+                    className="text-orange-400 hover:underline flex items-center gap-1 font-semibold"
                   >
-                    View Offer <ExternalLink className="w-3 h-3" />
+                    Swiggy Menu <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
               </div>
@@ -250,28 +251,28 @@ export default function App() {
           )}
         </section>
 
-        {/* Right Column: Live Call Console & Call Records */}
+        {/* Right Column: Live Bolti AI Console & Food Order Logs */}
         <section className="lg:col-span-7 flex flex-col gap-6">
           
           {/* Live Interactive Speech Console */}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl flex-1 flex flex-col">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Bot className="w-5 h-5 text-emerald-400" /> Real-time Speech & AI Console
+                <Bot className="w-5 h-5 text-orange-400" /> Bolti AI Real-time Speech Console
               </h2>
               <span className="text-xs text-slate-400 bg-slate-950 px-3 py-1 rounded-full border border-slate-800 font-mono">
-                Call SID: {activeCallSid || 'Standby'}
+                Call ID: {activeCallSid || 'Standby'}
               </span>
             </div>
 
-            {/* Transcript Area */}
+            {/* Conversation Transcript Area */}
             <div className="flex-1 bg-slate-950 rounded-2xl p-4 border border-slate-800 overflow-y-auto min-h-[300px] max-h-[380px] space-y-3">
               {activeTranscript.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-500 space-y-2 py-12">
-                  <PhoneCall className="w-10 h-10 stroke-1 opacity-50" />
-                  <p className="text-sm font-medium">Ready to start conversation.</p>
+                  <Utensils className="w-10 h-10 stroke-1 opacity-50 text-orange-400" />
+                  <p className="text-sm font-medium">Ready to order Swiggy Food.</p>
                   <p className="text-xs text-slate-600 text-center max-w-sm">
-                    Click <b>"Call My Phone Now"</b> to speak on your phone, or type simulated responses below to test locally!
+                    Click <b>"Call Mobile Phone & Order Food"</b> to talk on your phone, or test conversation inputs below!
                   </p>
                 </div>
               ) : (
@@ -283,19 +284,19 @@ export default function App() {
                     }`}
                   >
                     {msg.role !== 'user' && (
-                      <div className="w-8 h-8 rounded-xl bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-xl bg-orange-600/30 border border-orange-500/40 text-orange-300 flex items-center justify-center shrink-0">
                         <Bot className="w-4 h-4" />
                       </div>
                     )}
                     <div
                       className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
                         msg.role === 'user'
-                          ? 'bg-emerald-600 text-white rounded-tr-none shadow-md'
+                          ? 'bg-orange-600 text-white rounded-tr-none shadow-md'
                           : 'bg-slate-800 border border-slate-700 text-slate-200 rounded-tl-none'
                       }`}
                     >
                       <p className="text-[10px] uppercase font-bold tracking-wider mb-1 opacity-75">
-                        {msg.role === 'user' ? 'You / Customer Speech' : 'AI Sales Representative'}
+                        {msg.role === 'user' ? 'Customer Speech' : 'Swiggy FoodieAI (Bolti AI)'}
                       </p>
                       <p className="leading-relaxed">{msg.content}</p>
                     </div>
@@ -309,30 +310,30 @@ export default function App() {
               )}
             </div>
 
-            {/* Test Input Form */}
+            {/* Browser Test Input Form */}
             <form onSubmit={handleSimulateSpeech} className="mt-4 flex gap-2">
               <input
                 type="text"
                 value={simulatedUserInput}
                 onChange={(e) => setSimulatedUserInput(e.target.value)}
                 placeholder="Type customer reply (e.g. 'Yes, please send Biryani offer to WhatsApp')..."
-                className="flex-1 bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500 transition"
+                className="flex-1 bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-orange-500 transition"
               />
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-5 rounded-2xl font-bold flex items-center gap-2 transition"
+                className="bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white px-5 rounded-2xl font-bold flex items-center gap-2 transition"
               >
                 <Send className="w-4 h-4" /> Test Reply
               </button>
             </form>
           </div>
 
-          {/* MongoDB History Table */}
+          {/* Swiggy Food Call History Table */}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Database className="w-4 h-4 text-cyan-400" /> MongoDB Call Logs & AI Ratings
+                <Database className="w-4 h-4 text-cyan-400" /> Swiggy Food Orders & AI Lead Ratings
               </h2>
               <button
                 onClick={fetchLogs}
@@ -346,18 +347,18 @@ export default function App() {
               <table className="w-full text-left text-xs text-slate-300">
                 <thead className="bg-slate-950 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-800">
                   <tr>
-                    <th className="py-3 px-3">Call SID</th>
+                    <th className="py-3 px-3">Call / Order ID</th>
                     <th className="py-3 px-3">Phone</th>
-                    <th className="py-3 px-3">Offer</th>
+                    <th className="py-3 px-3">Swiggy Item</th>
                     <th className="py-3 px-3">AI Rating</th>
-                    <th className="py-3 px-3">WhatsApp Sent</th>
+                    <th className="py-3 px-3">WhatsApp Order Link</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
                   {callLogs.length === 0 ? (
                     <tr>
                       <td colSpan="5" className="py-6 text-center text-slate-500">
-                        No call logs stored in database yet.
+                        No food orders recorded in database yet.
                       </td>
                     </tr>
                   ) : (
@@ -374,10 +375,10 @@ export default function App() {
                         <td className="py-3 px-3">
                           {log.whatsappSent ? (
                             <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold bg-emerald-500/10 px-2.5 py-0.5 rounded-lg border border-emerald-500/20">
-                              <MessageSquare className="w-3.5 h-3.5" /> Sent
+                              <MessageSquare className="w-3.5 h-3.5" /> Dispatched
                             </span>
                           ) : (
-                            <span className="text-slate-500">Not Sent</span>
+                            <span className="text-slate-500">Pending</span>
                           )}
                         </td>
                       </tr>

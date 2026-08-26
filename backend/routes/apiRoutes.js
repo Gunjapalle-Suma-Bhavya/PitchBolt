@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { makeOutboundCall, sendWhatsAppMessage } = require('../services/twilioService');
+const { makeBoltiCall } = require('../services/boltiService');
+const { sendWhatsAppMessage } = require('../services/twilioService');
 const { searchProducts, mockCatalog } = require('../services/ecommerceService');
 const { processUserSpeech } = require('../agent/salesAgent');
 const CallLog = require('../models/CallLog');
@@ -9,7 +10,7 @@ const CallLog = require('../models/CallLog');
 let inMemoryCallLogs = [];
 
 /**
- * Endpoint to trigger an outbound AI phone call
+ * Endpoint to trigger an outbound AI phone call via Bolti AI Voice
  */
 router.post('/calls/trigger', async (req, res) => {
   const { phoneNumber, productQuery } = req.body;
@@ -19,17 +20,19 @@ router.post('/calls/trigger', async (req, res) => {
   }
 
   try {
-    const result = await makeOutboundCall(phoneNumber, productQuery || 'Sony Headphones');
+    const result = await makeBoltiCall(phoneNumber, productQuery || 'Special Hyderabadi Dum Biryani');
 
     const newRecord = {
       callSid: result.callSid,
       phoneNumber,
-      initialProductQuery: productQuery || 'Sony Headphones',
+      initialProductQuery: productQuery || 'Special Hyderabadi Dum Biryani',
       status: 'initiated',
       transcript: [],
       isInterested: false,
       whatsappSent: false,
-      langsmithTraceUrl: `https://smith.langchain.com/o/project/${process.env.LANGCHAIN_PROJECT || 'ai-telephony-sales-agent'}`,
+      aiRatingScore: 5,
+      aiRatingFeedback: 'Swiggy Food AI Call Initiated',
+      langsmithTraceUrl: `https://smith.langchain.com/o/project/${process.env.LANGCHAIN_PROJECT || 'Swiggy-Food-Agent'}`,
       createdAt: new Date()
     };
 
@@ -41,8 +44,9 @@ router.post('/calls/trigger', async (req, res) => {
 
     return res.json({
       success: true,
-      message: result.simulated ? 'Simulated Outbound Call Triggered!' : 'Twilio Outbound Call Dispatched!',
+      message: result.simulated ? 'Bolti AI Call Triggered (Simulated)' : 'Bolti AI Voice Call Dispatched to Mobile Phone!',
       callSid: result.callSid,
+      provider: result.provider || 'Bolti AI Voice',
       simulated: result.simulated
     });
   } catch (err) {
@@ -83,17 +87,17 @@ router.post('/calls/simulate-speech', async (req, res) => {
 
   const agentResult = await processUserSpeech({
     callSid: currentCallSid,
-    phoneNumber: phoneNumber || '+15550199',
+    phoneNumber: phoneNumber || '+919121447422',
     userSpeech,
-    productContext: productQuery || 'Sony Headphones',
+    productContext: productQuery || 'Special Hyderabadi Dum Biryani',
     conversationHistory: history
   });
 
   // Update in-memory fallback
   const updatedLog = {
     callSid: currentCallSid,
-    phoneNumber: phoneNumber || '+15550199',
-    initialProductQuery: productQuery || 'Sony Headphones',
+    phoneNumber: phoneNumber || '+919121447422',
+    initialProductQuery: productQuery || 'Special Hyderabadi Dum Biryani',
     status: agentResult.whatsappSent ? 'completed' : 'in-progress',
     transcript: agentResult.updatedMessages.map((m) => ({
       role: m._getType() === 'human' ? 'user' : 'assistant',
@@ -101,7 +105,9 @@ router.post('/calls/simulate-speech', async (req, res) => {
     })),
     isInterested: agentResult.isInterested,
     whatsappSent: agentResult.whatsappSent,
-    langsmithTraceUrl: `https://smith.langchain.com/o/project/${process.env.LANGCHAIN_PROJECT || 'ai-telephony-sales-agent'}`,
+    aiRatingScore: agentResult.aiRatingScore || 5,
+    aiRatingFeedback: agentResult.aiRatingFeedback || 'Swiggy Food Recommendation',
+    langsmithTraceUrl: `https://smith.langchain.com/o/project/${process.env.LANGCHAIN_PROJECT || 'Swiggy-Food-Agent'}`,
     createdAt: new Date()
   };
 
@@ -117,12 +123,13 @@ router.post('/calls/simulate-speech', async (req, res) => {
     callSid: currentCallSid,
     aiResponse: agentResult.responseSpeech,
     isInterested: agentResult.isInterested,
-    whatsappSent: agentResult.whatsappSent
+    whatsappSent: agentResult.whatsappSent,
+    aiRatingScore: agentResult.aiRatingScore
   });
 });
 
 /**
- * Endpoint to search Amazon/Flipkart products
+ * Endpoint to search Swiggy Food MCP & E-Commerce products
  */
 router.get('/products/search', async (req, res) => {
   const query = req.query.q || '';
@@ -135,7 +142,7 @@ router.get('/products/search', async (req, res) => {
  */
 router.post('/whatsapp/send', async (req, res) => {
   const { phoneNumber, message } = req.body;
-  const result = await sendWhatsAppMessage(phoneNumber, message || 'Hello from AI Telephony Sales Agent!');
+  const result = await sendWhatsAppMessage(phoneNumber, message || 'Hello from Swiggy FoodieAI Voice Agent!');
   return res.json(result);
 });
 
