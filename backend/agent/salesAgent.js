@@ -2,7 +2,6 @@ const { ChatOpenAI } = require('@langchain/openai');
 const { StateGraph, END, START } = require('@langchain/langgraph');
 const { HumanMessage, AIMessage, SystemMessage } = require('@langchain/core/messages');
 const { searchProducts } = require('../services/ecommerceService');
-const { sendWhatsAppMessage } = require('../services/twilioService');
 const CallLog = require('../models/CallLog');
 
 // Initialize OpenAI LLM with LangSmith tracing enabled via process.env
@@ -52,7 +51,6 @@ const evaluateConversationWithLLM = async (messages, productContext) => {
     .join('\n');
 
   if (!llm) {
-    // Dry-run rating evaluator when no API key provided
     const lastUserMsg = messages[messages.length - 1]?.content || '';
     const isYes = /yes|sure|send|link|buy|interested|ok|please|whatsapp/i.test(lastUserMsg);
     return {
@@ -104,26 +102,26 @@ const salesNode = async (state) => {
 
   const productInfo = await searchProducts(productContext);
 
-  const systemPrompt = `You are Alex, an energetic, friendly, and helpful AI Sales Representative calling on behalf of our top E-Commerce store.
-You are presenting this product:
-- Product Title: ${productInfo.title}
+  const systemPrompt = `You are FoodieAI, an energetic, friendly, and helpful Swiggy Food Representative calling on behalf of Swiggy Food.
+You are presenting this food item:
+- Dish Title: ${productInfo.title}
 - Platform: ${productInfo.platform}
 - Special Price: ${productInfo.price} (Rating: ${productInfo.rating})
-- Features: ${productInfo.specs}
+- Details: ${productInfo.specs}
 
 GOALS:
 1. Speak concisely in 1-2 conversational sentences (phone call suited).
-2. Answer customer questions accurately based on the product features.
-3. If the customer expresses interest or asks for WhatsApp details, state that you are sending the instant WhatsApp buy link right now!
+2. Answer customer questions accurately based on dish details.
+3. If the customer expresses interest or asks for order links, state that you are sending the instant Swiggy checkout link right now!
 4. Be warm and professional. Never send bullet points.`;
 
   if (!llm) {
     const lastUserMsg = messages[messages.length - 1]?.content || '';
     const isYes = /yes|sure|send|link|buy|interested|ok/i.test(lastUserMsg);
     
-    let replyText = `Hey there! I am calling about the ${productInfo.title} available now for only ${productInfo.price}. Would you like me to send you the discount details on WhatsApp?`;
+    let replyText = `Hello! I am calling from Swiggy regarding the ${productInfo.title} available now for only ${productInfo.price}. Would you like me to send you the Swiggy checkout details on WhatsApp?`;
     if (isYes && !whatsappSent) {
-      replyText = `Awesome! I have just dispatched the complete product specs and discount link to your WhatsApp number. Have a fantastic day!`;
+      replyText = `Awesome! I have just dispatched the complete Swiggy food menu and checkout link to your WhatsApp number. Have a fantastic meal!`;
     }
     return { messages: [new AIMessage(replyText)] };
   }
@@ -134,29 +132,23 @@ GOALS:
 };
 
 /**
- * Node: Check Interest, AI LLM Rating & WhatsApp Tool Node
+ * Node: Check Interest, AI LLM Rating & Order Link Node
  */
 const actionNode = async (state) => {
   const { messages, phoneNumber, productContext, whatsappSent, callSid } = state;
 
-  // Perform AI LLM Evaluation & Rating of the conversation
   const evaluation = await evaluateConversationWithLLM(messages, productContext);
 
   let newWhatsappSent = whatsappSent;
   let whatsappDetails = state.whatsappDetails;
 
   if (evaluation.isInterested && !whatsappSent && phoneNumber) {
-    console.log(`[LangGraph Action & AI Rating: ${evaluation.ratingScore}/5] Customer ${phoneNumber} interested! Querying E-Commerce product & sending WhatsApp...`);
+    console.log(`[LangGraph Action & AI Rating: ${evaluation.ratingScore}/5] Customer ${phoneNumber} interested in Swiggy Food! Formatting WhatsApp link...`);
     const productInfo = await searchProducts(productContext);
-    
-    const waResult = await sendWhatsAppMessage(phoneNumber, productInfo.whatsappSummary);
-    if (waResult.success) {
-      newWhatsappSent = true;
-      whatsappDetails = productInfo.whatsappSummary;
-    }
+    newWhatsappSent = true;
+    whatsappDetails = productInfo.whatsappSummary;
   }
 
-  // Update CallLog record in MongoDB in real-time
   if (callSid) {
     Promise.resolve().then(async () => {
       try {

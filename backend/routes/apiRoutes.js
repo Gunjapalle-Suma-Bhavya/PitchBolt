@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const { makeBoltiCall } = require('../services/boltiService');
-const { sendWhatsAppMessage } = require('../services/twilioService');
 const { searchProducts, mockCatalog } = require('../services/ecommerceService');
 const { processUserSpeech } = require('../agent/salesAgent');
 const CallLog = require('../models/CallLog');
@@ -9,7 +8,7 @@ const CallLog = require('../models/CallLog');
 let inMemoryCallLogs = [];
 
 /**
- * Endpoint to trigger an outbound AI phone call via Bolti AI Voice
+ * Endpoint to trigger an outbound Swiggy Food AI phone call via Bolti AI Voice
  */
 router.post('/calls/trigger', async (req, res) => {
   const { phoneNumber, productQuery } = req.body;
@@ -43,10 +42,13 @@ router.post('/calls/trigger', async (req, res) => {
 
     return res.json({
       success: true,
-      message: result.simulated ? 'Swiggy Food AI Call Dispatched (Simulator Mode)' : 'Swiggy Food AI Voice Call Dispatched to Mobile Phone!',
+      message: result.statusCode === 403
+        ? 'Bolti API Key 403 Forbidden: Check API permissions on Bolna dashboard. Operating in Simulator Mode.'
+        : (result.simulated ? 'Swiggy Food AI Call Dispatched (Simulator Mode)' : 'Swiggy Food AI Voice Call Dispatched to Mobile Phone!'),
       callSid: result.callSid,
       provider: result.provider || 'Bolti AI Voice',
-      simulated: result.simulated
+      simulated: result.simulated,
+      errorDetails: result.errorDetails
     });
   } catch (err) {
     console.error('[Call Trigger Error]', err.message);
@@ -100,7 +102,6 @@ router.post('/calls/simulate-speech', async (req, res) => {
     conversationHistory: history
   });
 
-  // Update in-memory fallback
   const updatedLog = {
     callSid: currentCallSid,
     phoneNumber: phoneNumber || '+919121447422',
@@ -142,15 +143,6 @@ router.get('/products/search', async (req, res) => {
   const query = req.query.q || '';
   const result = await searchProducts(query);
   return res.json({ success: true, product: result, catalog: mockCatalog });
-});
-
-/**
- * Endpoint to test sending direct WhatsApp message
- */
-router.post('/whatsapp/send', async (req, res) => {
-  const { phoneNumber, message } = req.body;
-  const result = await sendWhatsAppMessage(phoneNumber, message || 'Hello from Swiggy FoodieAI Voice Agent!');
-  return res.json(result);
 });
 
 module.exports = router;
