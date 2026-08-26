@@ -4,7 +4,7 @@ const axios = require('axios');
  * Bolti / Bolna AI Voice Call Dispatch Service (Pure Bolti AI Integration)
  */
 const makeBoltiCall = async (toPhoneNumber, foodItem = 'Special Hyderabadi Dum Biryani') => {
-  const apiKey = (process.env.BOLTI_API_KEY || 'mcp_TzQCdvqxUHZchYO603Y_ltLXJho1fyoBCUvsYsdylF4').trim();
+  const apiKey = (process.env.BOLTI_API_KEY || 'mcp_BVHPsWEgehZLYa_nD45gpvkJoFQOKlN3KNjXHNppRHY').trim();
   const agentId = (process.env.BOLTI_AGENT_ID || 'b009b044-e9e4-4e09-8f34-a7b143f40a65').trim();
   const baseUrl = process.env.BOLTI_BASE_URL || 'https://api.bolna.dev';
 
@@ -27,20 +27,14 @@ const makeBoltiCall = async (toPhoneNumber, foodItem = 'Special Hyderabadi Dum B
     }
   };
 
-  // Build target URL with token query fallback
-  const targetUrl = `${baseUrl}/call?token=${encodeURIComponent(apiKey)}&api_key=${encodeURIComponent(apiKey)}`;
-
   try {
     const response = await axios.post(
-      targetUrl,
+      `${baseUrl}/call`,
       payload,
       {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'X-API-KEY': apiKey,
-          'x-api-key': apiKey,
-          'x-app-token': apiKey,
-          'x-access-token': apiKey,
           'Content-Type': 'application/json'
         },
         timeout: 8000
