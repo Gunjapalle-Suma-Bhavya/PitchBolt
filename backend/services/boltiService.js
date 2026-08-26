@@ -27,15 +27,20 @@ const makeBoltiCall = async (toPhoneNumber, foodItem = 'Special Hyderabadi Dum B
     }
   };
 
+  // Build target URL with token query fallback
+  const targetUrl = `${baseUrl}/call?token=${encodeURIComponent(apiKey)}&api_key=${encodeURIComponent(apiKey)}`;
+
   try {
-    // Official Bolna API authentication header: X-API-KEY: <apiKey>
     const response = await axios.post(
-      `${baseUrl}/call`,
+      targetUrl,
       payload,
       {
         headers: {
+          'Authorization': `Bearer ${apiKey}`,
           'X-API-KEY': apiKey,
           'x-api-key': apiKey,
+          'x-app-token': apiKey,
+          'x-access-token': apiKey,
           'Content-Type': 'application/json'
         },
         timeout: 8000
