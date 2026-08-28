@@ -4,11 +4,11 @@ const { HumanMessage, AIMessage, SystemMessage } = require('@langchain/core/mess
 const { searchProducts } = require('../services/ecommerceService');
 const CallLog = require('../models/CallLog');
 
-// Initialize OpenAI LLM with LangSmith tracing enabled via process.env
+// Initialize OpenAI LLM
 const getLLM = () => {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey || apiKey.includes('your_')) {
-    console.warn('[LangChain Warning] OPENAI_API_KEY not configured. Falling back to structured response generator.');
+    console.warn('[LangChain] OPENAI_API_KEY not configured. Falling back to structured response generator.');
     return null;
   }
 
@@ -23,7 +23,7 @@ const getLLM = () => {
 };
 
 /**
- * Define Graph State Channels
+ * Graph State Channels
  */
 const channels = {
   messages: {
@@ -43,7 +43,7 @@ const channels = {
 };
 
 /**
- * AI Evaluator: Evaluates Buyer Seriousness (1-5 ⭐) & On-Call Action Required
+ * AI Evaluator: Evaluates Buyer Seriousness (1-5) & On-Call Action Required
  */
 const evaluateBuyerSeriousness = async (messages, productContext) => {
   const llm = getLLM();
@@ -59,8 +59,8 @@ const evaluateBuyerSeriousness = async (messages, productContext) => {
       ratingScore: score,
       isInterested: isSerious,
       onCallAction: score >= 4 ? 'Scheduled Priority Strategy Consultation & Generated Scope' : 'Provided Service Information',
-      feedback: isSerious ? 'Hot Lead: Immediate intent to build e-commerce store' : 'Warm Lead: Exploring website features',
-      summary: `Customer discussed building an e-commerce website with requirement for ${productContext}.`
+      feedback: isSerious ? 'High Intent: Immediate plan to build e-commerce store' : 'Moderate Intent: Exploring website features',
+      summary: `Client discussed building an e-commerce website with requirement for ${productContext}.`
     };
   }
 
@@ -69,10 +69,10 @@ const evaluateBuyerSeriousness = async (messages, productContext) => {
 Transcript regarding "${productContext}":
 ${transcriptText}
 
-Rate how serious a buyer the customer is (1 to 5 stars):
-- 5: Hot Lead (ready to build, asking timeline/price/booking)
-- 3-4: Warm Lead (interested in features/tech stack)
-- 1-2: Cold Lead (casual window shopping)
+Rate buyer intent (1 to 5):
+- 5: High Intent / Serious (ready to build, asking timeline/price/booking)
+- 3-4: Moderate Intent (interested in tech stack/features)
+- 1-2: Low Intent (casual inquiry)
 
 Return JSON only:
 {
@@ -114,8 +114,8 @@ const salesNode = async (state) => {
 
   const packageInfo = await searchProducts(productContext);
 
-  const systemPrompt = `You are Alex, an energetic, expert Senior E-Commerce Web Solutions Consultant at a top digital agency.
-You are calling a potential client interested in building an E-Commerce website.
+  const systemPrompt = `You are Alex, an expert Senior E-Commerce Web Solutions Consultant at a top digital agency.
+You are calling a client interested in building an E-Commerce website.
 Selected Package Context:
 - Package: ${packageInfo.title}
 - Investment: ${packageInfo.price}
@@ -123,19 +123,19 @@ Selected Package Context:
 - Included Features: ${packageInfo.specs}
 
 GOALS:
-1. Speak concisely in 1-2 natural, conversational sentences suitable for a phone call. Priority language is English (adapt gracefully if client speaks Hindi, Telugu, Spanish, etc.).
-2. Pitch the web building service, highlight conversion features (UPI, mobile design, speed, SEO), and address client requirements.
-3. Gauge how serious the buyer is by asking about target launch date or store products.
-4. If client shows interest or asks to proceed, TAKE ACTION ON THE CALL by stating: "Awesome! I have locked in your priority consultation and I am sending our complete project proposal and portfolio link directly to your WhatsApp right now!"
-5. Be professional, persuasive, and warm.`;
+1. Speak concisely in 1-2 natural sentences suitable for a phone call. Priority language is English (adapt gracefully if client speaks Hindi, Telugu, Spanish, etc.).
+2. Pitch the web building service, highlight conversion features (UPI, mobile responsiveness, speed, SEO), and address client requirements.
+3. Gauge buyer seriousness by asking about target launch date or store products.
+4. If client shows interest or asks to proceed, TAKE ACTION ON THE CALL by stating: "I have reserved your priority consultation slot and dispatched our complete project proposal and portfolio link directly to your WhatsApp."
+5. Maintain a professional, persuasive tone. Do not use emojis in speech text.`;
 
   if (!llm) {
     const lastUserMsg = messages[messages.length - 1]?.content || '';
     const isSerious = /yes|sure|send|build|price|start|ok|schedule|book/i.test(lastUserMsg);
     
-    let replyText = `Hello! I am Alex from WebAgency calling regarding your inquiry for building an E-Commerce website. Our ${packageInfo.title} starts at ${packageInfo.price} with payment gateway, mobile design, and admin panel. When are you looking to launch your store?`;
+    let replyText = `Hello, I am Alex from WebAgency calling regarding your inquiry for building an E-Commerce website. Our ${packageInfo.title} starts at ${packageInfo.price} with payment gateway integration, mobile design, and admin panel. When are you looking to launch your store?`;
     if (isSerious && !whatsappSent) {
-      replyText = `Fantastic! I have reserved your priority consultation slot and dispatched the complete project proposal and design portfolio link directly to your WhatsApp. Talk soon!`;
+      replyText = `Thank you. I have reserved your priority consultation slot and sent the complete project proposal and portfolio link directly to your WhatsApp. Have a great day.`;
     }
     return { messages: [new AIMessage(replyText)] };
   }
@@ -157,10 +157,10 @@ const actionNode = async (state) => {
   let whatsappDetails = state.whatsappDetails;
 
   if (evaluation.isInterested && !whatsappSent && phoneNumber) {
-    console.log(`[LangGraph Action & Seriousness Rating: ${evaluation.ratingScore}/5 ⭐] Serious buyer ${phoneNumber}! Taking on-call action & formatting WhatsApp context...`);
+    console.log(`[LangGraph Action] Score: ${evaluation.ratingScore}/5 for ${phoneNumber}. Formatting WhatsApp summary...`);
     const packageInfo = await searchProducts(productContext);
     newWhatsappSent = true;
-    whatsappDetails = `📱 E-Commerce Website Call Summary:\n- Discussed: ${evaluation.summary}\n- Recommended Package: ${packageInfo.title} (${packageInfo.price})\n- Seriousness Rating: ${evaluation.ratingScore}/5 ⭐ (${evaluation.feedback})\n- Next Step: Priority Strategy Session Booked. View Proposal: https://webagency.example.com/proposal?client=${encodeURIComponent(phoneNumber)}`;
+    whatsappDetails = `E-Commerce Website Call Summary:\n- Requirements: ${evaluation.summary}\n- Recommended Package: ${packageInfo.title} (${packageInfo.price})\n- Lead Seriousness Score: ${evaluation.ratingScore}/5 (${evaluation.feedback})\n- Next Step: Priority Strategy Session Booked. View Proposal: https://webagency.example.com/proposal?client=${encodeURIComponent(phoneNumber)}`;
   }
 
   if (callSid) {
@@ -185,7 +185,7 @@ const actionNode = async (state) => {
           { upsert: true, new: true, maxTimeMS: 2000 }
         );
       } catch (e) {
-        // Non-blocking for local testing
+        // Non-blocking
       }
     });
   }
@@ -202,7 +202,7 @@ const actionNode = async (state) => {
 };
 
 /**
- * Build & Compile LangGraph State Graph
+ * Build & Compile State Graph
  */
 const builder = new StateGraph({ channels });
 builder.addNode('sales_node', salesNode);
@@ -237,7 +237,7 @@ const processUserSpeech = async ({ callSid, phoneNumber, userSpeech, productCont
   const lastAiMessage = result.messages[result.messages.length - 1];
 
   return {
-    responseSpeech: lastAiMessage ? lastAiMessage.content : 'Thank you for your time!',
+    responseSpeech: lastAiMessage ? lastAiMessage.content : 'Thank you for your time.',
     isInterested: result.isInterested,
     whatsappSent: result.whatsappSent,
     aiRatingScore: result.aiRatingScore,

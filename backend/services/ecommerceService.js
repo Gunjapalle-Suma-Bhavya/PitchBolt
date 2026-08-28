@@ -9,7 +9,7 @@ const webPackagesCatalog = [
     price: '₹19,999 ($249)',
     specs: 'Up to 50 Products, Mobile Responsive, Razorpay/Stripe UPI Gateway, Basic SEO & Admin Panel.',
     platform: 'Shopify / WooCommerce',
-    whatsappSummary: '🚀 Starter Store Package (₹19,999): Up to 50 products, payment gateway, mobile responsive design. Proposal Link: https://webagency.example.com/starter-proposal'
+    whatsappSummary: 'Starter Store Package (₹19,999): Up to 50 products, payment gateway integration, mobile responsive design. Proposal Link: https://webagency.example.com/starter-proposal'
   },
   {
     id: 'pro',
@@ -17,7 +17,7 @@ const webPackagesCatalog = [
     price: '₹49,999 ($599)',
     specs: 'Unlimited Products, Custom UX/UI, Speed Optimization, WhatsApp Order Links, Inventory CRM, Analytics.',
     platform: 'Custom MERN / Next.js',
-    whatsappSummary: '⚡ Growth Pro Package (₹49,999): Unlimited products, custom design, WhatsApp checkout, CRM integration. Proposal Link: https://webagency.example.com/pro-proposal'
+    whatsappSummary: 'Growth Pro Package (₹49,999): Unlimited products, custom design, WhatsApp checkout, CRM integration. Proposal Link: https://webagency.example.com/pro-proposal'
   },
   {
     id: 'enterprise',
@@ -25,7 +25,7 @@ const webPackagesCatalog = [
     price: '₹99,999 ($1,199)',
     specs: 'Multi-vendor Marketplace, Custom React/Node, iOS/Android Mobile Apps, AI Product Recommendations, 24/7 Support.',
     platform: 'Custom Full-Stack Microservices',
-    whatsappSummary: '👑 Enterprise Store Package (₹99,999): Multi-vendor, iOS/Android Apps, AI Recommendations. Proposal Link: https://webagency.example.com/enterprise-proposal'
+    whatsappSummary: 'Enterprise Store Package (₹99,999): Multi-vendor, iOS/Android Apps, AI Recommendations. Proposal Link: https://webagency.example.com/enterprise-proposal'
   }
 ];
 
@@ -34,7 +34,7 @@ const searchProducts = async (query = '') => {
   const found = webPackagesCatalog.find(
     (p) => p.title.toLowerCase().includes(q) || p.specs.toLowerCase().includes(q) || p.id.includes(q)
   );
-  return found || webPackagesCatalog[1]; // Default to Growth Pro
+  return found || webPackagesCatalog[1];
 };
 
 module.exports = { searchProducts, webPackagesCatalog };
