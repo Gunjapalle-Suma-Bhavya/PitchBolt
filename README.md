@@ -1,79 +1,62 @@
-# 📞 AI Telephony Sales & Product Recommendation System
+# WebAgency — AI Telephony Sales & Lead Qualification System
 
-An AI-powered voice telephony sales platform built with **LangChain**, **LangGraph**, **LangSmith**, **OpenAI**, **Twilio Voice & WhatsApp**, **Amazon / Flipkart E-Commerce API**, **MongoDB**, and **React**.
-
----
-
-## ✨ Key Features
-
-- 🤖 **LangGraph Conversational Agent**: Multi-turn sales flow with dynamic intent detection and tool calling.
-- ⭐️ **AI LLM Lead Evaluator**: OpenAI rates every call on a **1–5 Star Lead Score** with feedback reasoning.
-- 📱 **Twilio Voice & Built-in STT/TTS**: Real-time speech recognition via `<Gather input="speech">` and Polly neural voice synthesis (`<Say voice="Polly">`).
-- 💬 **Instant WhatsApp Buy Link Dispatch**: Automatically sends WhatsApp messages with product specs & discount links when a customer shows interest.
-- 🛒 **E-Commerce API Integration**: Fetches real-time pricing and features from Amazon & Flipkart.
-- 📊 **MongoDB Persistence**: Real-time logging of call SIDs, full transcripts, interest flags, and AI lead ratings.
-- 🔍 **LangSmith Tracing**: Full execution traces and token evaluation links recorded for every call.
-- 💻 **React Sales Dashboard & Simulator**: Web UI with live call dispatcher, interactive browser speech console, and call history table.
+A lightweight, minimalistic AI Voice Agent system built with **LangChain**, **LangGraph**, **OpenAI**, **Bolti AI Voice Engine**, **MongoDB**, and **React**.
 
 ---
 
-## 🚀 Quick Start
+## Key Features
 
-### 1. Environment Setup
-Copy `backend/.env.example` to `backend/.env` and insert your credentials:
+- **LangGraph Conversational Agent**: Multi-turn sales flow supporting English (priority), Telugu, and Hindi speech.
+- **E-Commerce Web Development Sales**: Pitches Starter (₹19,999), Growth Pro (₹49,999), and Enterprise (₹99,999) packages.
+- **4-Point Discovery Questionnaire**: Asks about products to sell, target launch timeline, allocated budget, and required features.
+- **Real-Time Lead Rating**: Evaluates buyer seriousness score (1 to 5 Stars) and categorizes leads as **Hot**, **Warm**, or **Cold**.
+- **On-Call Action Engine**: Takes on-call action (locks in strategy session & proposal scope) when high intent is detected.
+- **Named Callback Booking**: Extracts named callback times (e.g. *"Call me tomorrow at 4 PM"*) and books the callback session.
+- **Contextual WhatsApp Summary**: Generates and dispatches WhatsApp summaries with exact requirements discussed and proposal link.
+- **Minimalist React Dashboard**: Minimalist UI with live call dispatch, interactive speech console, and lead qualification table.
+
+---
+
+## Architecture Stack
+
+- **Speech-to-Text (STT)**: Deepgram Nova-3 via Bolti
+- **Text-to-Speech (TTS)**: ElevenLabs via Bolti
+- **Voice Transport**: LiveKit WebRTC
+- **AI Agent & Reasoning**: LangGraph & OpenAI (`gpt-4o-mini`)
+- **Backend**: Node.js & Express (Port 5000)
+- **Frontend**: React & Vite with Tailwind CSS (Port 3000)
+- **Database**: MongoDB Atlas
+
+---
+
+## Quick Start
+
+### 1. Environment Configuration
+Create `backend/.env` with your API credentials:
 
 ```env
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/ai_telephony_sales
+MONGODB_URI=mongodb+srv://...
 
 # OpenAI Credentials
 OPENAI_API_KEY=sk-...
 
-# Twilio Credentials
-TWILIO_ACCOUNT_SID=AC...
-TWILIO_AUTH_TOKEN=...
-TWILIO_PHONE_NUMBER=+1234567890
-TWILIO_WHATSAPP_NUMBER=+14155238886
-
-# LangSmith Tracing & Evals
-LANGCHAIN_TRACING_V2=true
-LANGCHAIN_API_KEY=lsv2_pt_...
-LANGCHAIN_PROJECT=ai-telephony-sales-agent
-
-# Backend Public Domain (e.g. ngrok HTTPS URL)
-PUBLIC_BACKEND_URL=http://localhost:5000
+# Bolti AI Voice Credentials
+BOLTI_API_KEY=eyJ...
+BOLTI_WORKSPACE_ID=23172290-fab3-40f7-bd08-c49129bfa6a5
+BOLTI_AGENT_ID=b009b044-e9e4-4e09-8f34-a7b143f40a65
+BOLTI_BASE_URL=https://api.bolti.co.in
 ```
 
-### 2. Run Backend
+### 2. Start Backend
 ```bash
 cd backend
 npm start
 ```
 
-### 3. Run Frontend
+### 3. Start Frontend
 ```bash
 cd frontend
 npm run dev
 ```
 Open **`http://localhost:3000`** in your browser.
-
----
-
-## 🧪 Local Test Runner
-You can test the LangGraph state graph and AI lead evaluator locally without making phone calls:
-
-```bash
-cd backend
-node test_agent.js
-```
-
----
-
-## 📄 Git Repository Setup
-To push this project to GitHub / Git:
-
-```bash
-git init
-git add .
-git commit -m "Initial commit: AI Telephony Sales Agent with LangGraph, Twilio & React"
-```
