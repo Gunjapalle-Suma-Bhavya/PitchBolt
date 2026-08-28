@@ -31,46 +31,56 @@ const channels = {
     default: () => []
   },
   phoneNumber: { value: (x, y) => y ?? x, default: () => '' },
-  productContext: { value: (x, y) => y ?? x, default: () => 'featured product' },
+  productContext: { value: (x, y) => y ?? x, default: () => 'Growth Pro E-Commerce Portal' },
   isInterested: { value: (x, y) => y ?? x, default: () => false },
   whatsappSent: { value: (x, y) => y ?? x, default: () => false },
   whatsappDetails: { value: (x, y) => y ?? x, default: () => '' },
   aiRatingScore: { value: (x, y) => y ?? x, default: () => 3 },
-  aiRatingFeedback: { value: (x, y) => y ?? x, default: () => 'Neutral engagement' },
+  aiRatingFeedback: { value: (x, y) => y ?? x, default: () => 'Engaged inquiry' },
   aiSummary: { value: (x, y) => y ?? x, default: () => 'Call in progress' },
+  onCallAction: { value: (x, y) => y ?? x, default: () => 'Answering questions' },
   callSid: { value: (x, y) => y ?? x, default: () => '' }
 };
 
 /**
- * AI Evaluator: Uses OpenAI LLM to rate conversation quality & interest score (1-5)
+ * AI Evaluator: Evaluates Buyer Seriousness (1-5 ⭐) & On-Call Action Required
  */
-const evaluateConversationWithLLM = async (messages, productContext) => {
+const evaluateBuyerSeriousness = async (messages, productContext) => {
   const llm = getLLM();
   const transcriptText = messages
-    .map((m) => `${m._getType() === 'human' ? 'Customer' : 'AI Sales Agent'}: ${m.content}`)
+    .map((m) => `${m._getType() === 'human' ? 'Customer' : 'Alex (Sales Agent)'}: ${m.content}`)
     .join('\n');
 
   if (!llm) {
     const lastUserMsg = messages[messages.length - 1]?.content || '';
-    const isYes = /yes|sure|send|link|buy|interested|ok|please|whatsapp/i.test(lastUserMsg);
+    const isSerious = /build|start|price|timeline|yes|sure|send|schedule|call|budget|pay|book|urgent/i.test(lastUserMsg);
+    const score = isSerious ? 5 : 3;
     return {
-      ratingScore: isYes ? 5 : 3,
-      isInterested: isYes,
-      feedback: isYes ? 'High customer purchase intent & WhatsApp requested' : 'Standard inquiry',
-      summary: `Customer discussed ${productContext}.`
+      ratingScore: score,
+      isInterested: isSerious,
+      onCallAction: score >= 4 ? 'Scheduled Priority Strategy Consultation & Generated Scope' : 'Provided Service Information',
+      feedback: isSerious ? 'Hot Lead: Immediate intent to build e-commerce store' : 'Warm Lead: Exploring website features',
+      summary: `Customer discussed building an e-commerce website with requirement for ${productContext}.`
     };
   }
 
   try {
-    const evalPrompt = `You are a Lead Evaluation AI. Analyze this sales call transcript regarding product "${productContext}":
+    const evalPrompt = `You are a Lead Qualification Specialist analyzing a call between a sales consultant and a client looking to build an E-Commerce website.
+Transcript regarding "${productContext}":
 ${transcriptText}
 
-Rate the customer's purchase intent & call quality. Return JSON only:
+Rate how serious a buyer the customer is (1 to 5 stars):
+- 5: Hot Lead (ready to build, asking timeline/price/booking)
+- 3-4: Warm Lead (interested in features/tech stack)
+- 1-2: Cold Lead (casual window shopping)
+
+Return JSON only:
 {
   "ratingScore": <integer 1 to 5>,
   "isInterested": <boolean>,
+  "onCallAction": "<1 sentence action taken on-call>",
   "feedback": "<1 sentence reasoning>",
-  "summary": "<1 sentence call summary>"
+  "summary": "<1 sentence summary of requirements discussed>"
 }`;
 
     const res = await llm.invoke([new SystemMessage(evalPrompt)]);
@@ -78,50 +88,54 @@ Rate the customer's purchase intent & call quality. Return JSON only:
     return {
       ratingScore: parsed.ratingScore || 3,
       isInterested: parsed.isInterested ?? false,
-      feedback: parsed.feedback || 'Evaluated conversation',
-      summary: parsed.summary || 'Call processed'
+      onCallAction: parsed.onCallAction || 'Consulted client on-call',
+      feedback: parsed.feedback || 'Evaluated buyer intent',
+      summary: parsed.summary || 'E-Commerce website inquiry'
     };
   } catch (err) {
     const lastUserMsg = messages[messages.length - 1]?.content || '';
-    const isYes = /yes|sure|send|link|buy|interested|ok|please|whatsapp/i.test(lastUserMsg);
+    const isSerious = /build|start|price|yes|sure|send|schedule|book/i.test(lastUserMsg);
     return {
-      ratingScore: isYes ? 5 : 3,
-      isInterested: isYes,
-      feedback: 'LLM Evaluated lead interest',
-      summary: 'Sales conversation in progress'
+      ratingScore: isSerious ? 5 : 3,
+      isInterested: isSerious,
+      onCallAction: isSerious ? 'Locked in Consultation & Project Proposal' : 'Consulted on Features',
+      feedback: 'Evaluated buyer intent',
+      summary: 'E-Commerce website build consultation'
     };
   }
 };
 
 /**
- * Node: Sales Representative Node
+ * Node: Senior E-Commerce Web Solutions Consultant
  */
 const salesNode = async (state) => {
   const { messages, productContext, whatsappSent } = state;
   const llm = getLLM();
 
-  const productInfo = await searchProducts(productContext);
+  const packageInfo = await searchProducts(productContext);
 
-  const systemPrompt = `You are FoodieAI, an energetic, friendly, and helpful Swiggy Food Representative calling on behalf of Swiggy Food.
-You are presenting this food item:
-- Dish Title: ${productInfo.title}
-- Platform: ${productInfo.platform}
-- Special Price: ${productInfo.price} (Rating: ${productInfo.rating})
-- Details: ${productInfo.specs}
+  const systemPrompt = `You are Alex, an energetic, expert Senior E-Commerce Web Solutions Consultant at a top digital agency.
+You are calling a potential client interested in building an E-Commerce website.
+Selected Package Context:
+- Package: ${packageInfo.title}
+- Investment: ${packageInfo.price}
+- Stack/Platform: ${packageInfo.platform}
+- Included Features: ${packageInfo.specs}
 
 GOALS:
-1. Speak concisely in 1-2 conversational sentences (phone call suited).
-2. Answer customer questions accurately based on dish details.
-3. If the customer expresses interest or asks for order links, state that you are sending the instant Swiggy checkout link right now!
-4. Be warm and professional. Never send bullet points.`;
+1. Speak concisely in 1-2 natural, conversational sentences suitable for a phone call. Priority language is English (adapt gracefully if client speaks Hindi, Telugu, Spanish, etc.).
+2. Pitch the web building service, highlight conversion features (UPI, mobile design, speed, SEO), and address client requirements.
+3. Gauge how serious the buyer is by asking about target launch date or store products.
+4. If client shows interest or asks to proceed, TAKE ACTION ON THE CALL by stating: "Awesome! I have locked in your priority consultation and I am sending our complete project proposal and portfolio link directly to your WhatsApp right now!"
+5. Be professional, persuasive, and warm.`;
 
   if (!llm) {
     const lastUserMsg = messages[messages.length - 1]?.content || '';
-    const isYes = /yes|sure|send|link|buy|interested|ok/i.test(lastUserMsg);
+    const isSerious = /yes|sure|send|build|price|start|ok|schedule|book/i.test(lastUserMsg);
     
-    let replyText = `Hello! I am calling from Swiggy regarding the ${productInfo.title} available now for only ${productInfo.price}. Would you like me to send you the Swiggy checkout details on WhatsApp?`;
-    if (isYes && !whatsappSent) {
-      replyText = `Awesome! I have just dispatched the complete Swiggy food menu and checkout link to your WhatsApp number. Have a fantastic meal!`;
+    let replyText = `Hello! I am Alex from WebAgency calling regarding your inquiry for building an E-Commerce website. Our ${packageInfo.title} starts at ${packageInfo.price} with payment gateway, mobile design, and admin panel. When are you looking to launch your store?`;
+    if (isSerious && !whatsappSent) {
+      replyText = `Fantastic! I have reserved your priority consultation slot and dispatched the complete project proposal and design portfolio link directly to your WhatsApp. Talk soon!`;
     }
     return { messages: [new AIMessage(replyText)] };
   }
@@ -132,21 +146,21 @@ GOALS:
 };
 
 /**
- * Node: Check Interest, AI LLM Rating & Order Link Node
+ * Node: On-Call Action, Buyer Rating & WhatsApp Context Generator
  */
 const actionNode = async (state) => {
   const { messages, phoneNumber, productContext, whatsappSent, callSid } = state;
 
-  const evaluation = await evaluateConversationWithLLM(messages, productContext);
+  const evaluation = await evaluateBuyerSeriousness(messages, productContext);
 
   let newWhatsappSent = whatsappSent;
   let whatsappDetails = state.whatsappDetails;
 
   if (evaluation.isInterested && !whatsappSent && phoneNumber) {
-    console.log(`[LangGraph Action & AI Rating: ${evaluation.ratingScore}/5] Customer ${phoneNumber} interested in Swiggy Food! Formatting WhatsApp link...`);
-    const productInfo = await searchProducts(productContext);
+    console.log(`[LangGraph Action & Seriousness Rating: ${evaluation.ratingScore}/5 ⭐] Serious buyer ${phoneNumber}! Taking on-call action & formatting WhatsApp context...`);
+    const packageInfo = await searchProducts(productContext);
     newWhatsappSent = true;
-    whatsappDetails = productInfo.whatsappSummary;
+    whatsappDetails = `📱 E-Commerce Website Call Summary:\n- Discussed: ${evaluation.summary}\n- Recommended Package: ${packageInfo.title} (${packageInfo.price})\n- Seriousness Rating: ${evaluation.ratingScore}/5 ⭐ (${evaluation.feedback})\n- Next Step: Priority Strategy Session Booked. View Proposal: https://webagency.example.com/proposal?client=${encodeURIComponent(phoneNumber)}`;
   }
 
   if (callSid) {
@@ -160,7 +174,7 @@ const actionNode = async (state) => {
               whatsappSent: newWhatsappSent,
               whatsappDetails,
               aiRatingScore: evaluation.ratingScore,
-              aiRatingFeedback: evaluation.feedback,
+              aiRatingFeedback: `${evaluation.feedback} | On-Call Action: ${evaluation.onCallAction}`,
               aiSummary: evaluation.summary,
               transcript: messages.map((m) => ({
                 role: m._getType() === 'human' ? 'user' : 'assistant',
@@ -182,6 +196,7 @@ const actionNode = async (state) => {
     whatsappDetails,
     aiRatingScore: evaluation.ratingScore,
     aiRatingFeedback: evaluation.feedback,
+    onCallAction: evaluation.onCallAction,
     aiSummary: evaluation.summary
   };
 };
@@ -214,7 +229,7 @@ const processUserSpeech = async ({ callSid, phoneNumber, userSpeech, productCont
   const initialState = {
     messages: inputMessages,
     phoneNumber,
-    productContext: productContext || 'featured product',
+    productContext: productContext || 'Growth Pro E-Commerce Portal',
     callSid
   };
 
@@ -227,6 +242,7 @@ const processUserSpeech = async ({ callSid, phoneNumber, userSpeech, productCont
     whatsappSent: result.whatsappSent,
     aiRatingScore: result.aiRatingScore,
     aiRatingFeedback: result.aiRatingFeedback,
+    onCallAction: result.onCallAction,
     aiSummary: result.aiSummary,
     updatedMessages: result.messages
   };

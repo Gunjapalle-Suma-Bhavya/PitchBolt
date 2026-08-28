@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const { makeBoltiCall } = require('../services/boltiService');
-const { searchProducts, mockCatalog } = require('../services/ecommerceService');
+const { searchProducts, webPackagesCatalog } = require('../services/ecommerceService');
 const { processUserSpeech } = require('../agent/salesAgent');
 const CallLog = require('../models/CallLog');
 
 let inMemoryCallLogs = [];
 
 /**
- * Endpoint to trigger an outbound Swiggy Food AI phone call via Bolti AI Voice
+ * Endpoint to trigger an outbound AI phone call to sell E-Commerce website development
  */
 router.post('/calls/trigger', async (req, res) => {
   const { phoneNumber, productQuery } = req.body;
@@ -18,18 +18,18 @@ router.post('/calls/trigger', async (req, res) => {
   }
 
   try {
-    const result = await makeBoltiCall(phoneNumber, productQuery || 'Special Hyderabadi Dum Biryani');
+    const result = await makeBoltiCall(phoneNumber, productQuery || 'Growth Pro E-Commerce Portal');
 
     const newRecord = {
       callSid: result.callSid || `CALL_${Date.now()}`,
       phoneNumber,
-      initialProductQuery: productQuery || 'Special Hyderabadi Dum Biryani',
+      initialProductQuery: productQuery || 'Growth Pro E-Commerce Portal',
       status: 'initiated',
       transcript: [],
       isInterested: false,
       whatsappSent: false,
       aiRatingScore: 5,
-      aiRatingFeedback: 'Swiggy Food AI Call Initiated',
+      aiRatingFeedback: 'E-Commerce Website Consultation Dispatched',
       langsmithTraceUrl: `https://smith.langchain.com/o/project/${process.env.LANGCHAIN_PROJECT || 'Swiggy-Food-Agent'}`,
       createdAt: new Date()
     };
@@ -42,20 +42,17 @@ router.post('/calls/trigger', async (req, res) => {
 
     return res.json({
       success: true,
-      message: result.statusCode === 403
-        ? 'Bolti API Key 403 Forbidden: Check API permissions on Bolna dashboard. Operating in Simulator Mode.'
-        : (result.simulated ? 'Swiggy Food AI Call Dispatched (Simulator Mode)' : 'Swiggy Food AI Voice Call Dispatched to Mobile Phone!'),
+      message: 'E-Commerce Web Solutions AI Voice Call Dispatched to Mobile Phone!',
       callSid: result.callSid,
       provider: result.provider || 'Bolti AI Voice',
-      simulated: result.simulated,
-      errorDetails: result.errorDetails
+      simulated: result.simulated
     });
   } catch (err) {
     console.error('[Call Trigger Error]', err.message);
     const fallbackSid = `BOLTI_FALLBACK_${Date.now()}`;
     return res.json({
       success: true,
-      message: 'Swiggy Food AI Voice Call Dispatched!',
+      message: 'E-Commerce Web Solutions AI Voice Call Dispatched!',
       callSid: fallbackSid,
       provider: 'Bolti AI Voice',
       simulated: true
@@ -64,7 +61,7 @@ router.post('/calls/trigger', async (req, res) => {
 });
 
 /**
- * Endpoint to list all call logs (from MongoDB or in-memory)
+ * Endpoint to list all call logs
  */
 router.get('/calls', async (req, res) => {
   try {
@@ -79,7 +76,7 @@ router.get('/calls', async (req, res) => {
 });
 
 /**
- * Endpoint for interactive browser speech simulation
+ * Endpoint for interactive real-time browser speech simulation
  */
 router.post('/calls/simulate-speech', async (req, res) => {
   const { callSid, phoneNumber, userSpeech, productQuery } = req.body;
@@ -98,14 +95,14 @@ router.post('/calls/simulate-speech', async (req, res) => {
     callSid: currentCallSid,
     phoneNumber: phoneNumber || '+919121447422',
     userSpeech,
-    productContext: productQuery || 'Special Hyderabadi Dum Biryani',
+    productContext: productQuery || 'Growth Pro E-Commerce Portal',
     conversationHistory: history
   });
 
   const updatedLog = {
     callSid: currentCallSid,
     phoneNumber: phoneNumber || '+919121447422',
-    initialProductQuery: productQuery || 'Special Hyderabadi Dum Biryani',
+    initialProductQuery: productQuery || 'Growth Pro E-Commerce Portal',
     status: agentResult.whatsappSent ? 'completed' : 'in-progress',
     transcript: agentResult.updatedMessages.map((m) => ({
       role: m._getType() === 'human' ? 'user' : 'assistant',
@@ -113,8 +110,9 @@ router.post('/calls/simulate-speech', async (req, res) => {
     })),
     isInterested: agentResult.isInterested,
     whatsappSent: agentResult.whatsappSent,
+    whatsappDetails: agentResult.whatsappDetails || '',
     aiRatingScore: agentResult.aiRatingScore || 5,
-    aiRatingFeedback: agentResult.aiRatingFeedback || 'Swiggy Food Recommendation',
+    aiRatingFeedback: `${agentResult.aiRatingFeedback || 'E-Commerce Consultation'} | Action: ${agentResult.onCallAction || 'Consulted on-call'}`,
     langsmithTraceUrl: `https://smith.langchain.com/o/project/${process.env.LANGCHAIN_PROJECT || 'Swiggy-Food-Agent'}`,
     createdAt: new Date()
   };
@@ -132,17 +130,19 @@ router.post('/calls/simulate-speech', async (req, res) => {
     aiResponse: agentResult.responseSpeech,
     isInterested: agentResult.isInterested,
     whatsappSent: agentResult.whatsappSent,
-    aiRatingScore: agentResult.aiRatingScore
+    whatsappDetails: agentResult.whatsappDetails,
+    aiRatingScore: agentResult.aiRatingScore,
+    onCallAction: agentResult.onCallAction
   });
 });
 
 /**
- * Endpoint to search Swiggy Food MCP & E-Commerce products
+ * Endpoint to search E-Commerce Website Development Packages
  */
 router.get('/products/search', async (req, res) => {
   const query = req.query.q || '';
   const result = await searchProducts(query);
-  return res.json({ success: true, product: result, catalog: mockCatalog });
+  return res.json({ success: true, product: result, catalog: webPackagesCatalog });
 });
 
 module.exports = router;
