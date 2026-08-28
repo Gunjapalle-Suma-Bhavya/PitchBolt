@@ -75,7 +75,6 @@ export default function App() {
       }
     } catch (err) {
       setCallStatusMsg(`Call Error: ${err.response?.data?.message || err.message}`);
-    } flex-col
     } finally {
       setLoading(false);
     }
