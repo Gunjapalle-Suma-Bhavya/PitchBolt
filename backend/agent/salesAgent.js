@@ -8,7 +8,6 @@ const CallLog = require('../models/CallLog');
 const getLLM = () => {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey || apiKey.includes('your_')) {
-    console.warn('[LangChain] OPENAI_API_KEY not configured. Falling back to structured response generator.');
     return null;
   }
 
@@ -26,10 +25,7 @@ const getLLM = () => {
  * Graph State Channels
  */
 const channels = {
-  messages: {
-    value: (x, y) => x.concat(y),
-    default: () => []
-  },
+  messages: { value: (x, y) => x.concat(y), default: () => [] },
   phoneNumber: { value: (x, y) => y ?? x, default: () => '' },
   productContext: { value: (x, y) => y ?? x, default: () => 'Growth Pro E-Commerce Portal' },
   isInterested: { value: (x, y) => y ?? x, default: () => false },
@@ -38,49 +34,64 @@ const channels = {
   aiRatingScore: { value: (x, y) => y ?? x, default: () => 3 },
   aiRatingFeedback: { value: (x, y) => y ?? x, default: () => 'Engaged inquiry' },
   aiSummary: { value: (x, y) => y ?? x, default: () => 'Call in progress' },
-  onCallAction: { value: (x, y) => y ?? x, default: () => 'Answering questions' },
+  onCallAction: { value: (x, y) => y ?? x, default: () => 'Consulting client' },
+  bookedCallbackTime: { value: (x, y) => y ?? x, default: () => '' },
   callSid: { value: (x, y) => y ?? x, default: () => '' }
 };
 
 /**
- * AI Evaluator: Evaluates Buyer Seriousness (1-5) & On-Call Action Required
+ * Extract Named Callback Time from Speech Input
+ */
+const extractCallbackTime = (text) => {
+  const match = text.match(/(tomorrow|today|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{1,2}\s*(am|pm)|at\s*\d{1,2})/i);
+  if (match) {
+    return text.substring(match.index).trim();
+  }
+  return '';
+};
+
+/**
+ * AI Evaluator: Evaluates Buyer Seriousness (1-5) & Extracts Callback
  */
 const evaluateBuyerSeriousness = async (messages, productContext) => {
   const llm = getLLM();
   const transcriptText = messages
-    .map((m) => `${m._getType() === 'human' ? 'Customer' : 'Alex (Sales Agent)'}: ${m.content}`)
+    .map((m) => `${m._getType() === 'human' ? 'Customer' : 'Alex'}: ${m.content}`)
     .join('\n');
 
+  const lastUserMsg = messages[messages.length - 1]?.content || '';
+  const detectedCallback = extractCallbackTime(lastUserMsg);
+
   if (!llm) {
-    const lastUserMsg = messages[messages.length - 1]?.content || '';
     const isSerious = /build|start|price|timeline|yes|sure|send|schedule|call|budget|pay|book|urgent/i.test(lastUserMsg);
     const score = isSerious ? 5 : 3;
     return {
       ratingScore: score,
       isInterested: isSerious,
-      onCallAction: score >= 4 ? 'Scheduled Priority Strategy Consultation & Generated Scope' : 'Provided Service Information',
-      feedback: isSerious ? 'High Intent: Immediate plan to build e-commerce store' : 'Moderate Intent: Exploring website features',
-      summary: `Client discussed building an e-commerce website with requirement for ${productContext}.`
+      onCallAction: detectedCallback ? `Callback Booked: ${detectedCallback}` : (score >= 4 ? 'Scheduled Strategy Session & Proposal' : 'Consulted on Features'),
+      feedback: isSerious ? 'High Intent Lead' : 'Moderate Intent Lead',
+      summary: `Inquiry for ${productContext}`,
+      bookedCallbackTime: detectedCallback
     };
   }
 
   try {
-    const evalPrompt = `You are a Lead Qualification Specialist analyzing a call between a sales consultant and a client looking to build an E-Commerce website.
-Transcript regarding "${productContext}":
+    const evalPrompt = `Analyze sales call transcript for "${productContext}":
 ${transcriptText}
 
 Rate buyer intent (1 to 5):
-- 5: High Intent / Serious (ready to build, asking timeline/price/booking)
-- 3-4: Moderate Intent (interested in tech stack/features)
-- 1-2: Low Intent (casual inquiry)
+- 5: High Intent / Serious
+- 3-4: Moderate Intent
+- 1-2: Low Intent
 
-Return JSON only:
+JSON only:
 {
-  "ratingScore": <integer 1 to 5>,
+  "ratingScore": <1-5>,
   "isInterested": <boolean>,
-  "onCallAction": "<1 sentence action taken on-call>",
+  "onCallAction": "<1 sentence action>",
   "feedback": "<1 sentence reasoning>",
-  "summary": "<1 sentence summary of requirements discussed>"
+  "summary": "<1 sentence summary>",
+  "bookedCallbackTime": "<extracted callback date/time if named, else empty>"
 }`;
 
     const res = await llm.invoke([new SystemMessage(evalPrompt)]);
@@ -88,19 +99,20 @@ Return JSON only:
     return {
       ratingScore: parsed.ratingScore || 3,
       isInterested: parsed.isInterested ?? false,
-      onCallAction: parsed.onCallAction || 'Consulted client on-call',
-      feedback: parsed.feedback || 'Evaluated buyer intent',
-      summary: parsed.summary || 'E-Commerce website inquiry'
+      onCallAction: detectedCallback ? `Callback Booked: ${detectedCallback}` : (parsed.onCallAction || 'Consulted client'),
+      feedback: parsed.feedback || 'Evaluated intent',
+      summary: parsed.summary || 'E-Commerce inquiry',
+      bookedCallbackTime: detectedCallback || parsed.bookedCallbackTime || ''
     };
   } catch (err) {
-    const lastUserMsg = messages[messages.length - 1]?.content || '';
     const isSerious = /build|start|price|yes|sure|send|schedule|book/i.test(lastUserMsg);
     return {
       ratingScore: isSerious ? 5 : 3,
       isInterested: isSerious,
-      onCallAction: isSerious ? 'Locked in Consultation & Project Proposal' : 'Consulted on Features',
-      feedback: 'Evaluated buyer intent',
-      summary: 'E-Commerce website build consultation'
+      onCallAction: detectedCallback ? `Callback Booked: ${detectedCallback}` : 'Consulted on Features',
+      feedback: 'Evaluated intent',
+      summary: 'E-Commerce consultation',
+      bookedCallbackTime: detectedCallback
     };
   }
 };
@@ -111,31 +123,27 @@ Return JSON only:
 const salesNode = async (state) => {
   const { messages, productContext, whatsappSent } = state;
   const llm = getLLM();
-
   const packageInfo = await searchProducts(productContext);
 
-  const systemPrompt = `You are Alex, an expert Senior E-Commerce Web Solutions Consultant at a top digital agency.
-You are calling a client interested in building an E-Commerce website.
-Selected Package Context:
-- Package: ${packageInfo.title}
-- Investment: ${packageInfo.price}
-- Stack/Platform: ${packageInfo.platform}
-- Included Features: ${packageInfo.specs}
+  const systemPrompt = `You are Alex, a Senior E-Commerce Consultant selling web development.
+Context: ${packageInfo.title} (${packageInfo.price}). Features: ${packageInfo.specs}.
 
-GOALS:
-1. Speak concisely in 1-2 natural sentences suitable for a phone call. Priority language is English (adapt gracefully if client speaks Hindi, Telugu, Spanish, etc.).
-2. Pitch the web building service, highlight conversion features (UPI, mobile responsiveness, speed, SEO), and address client requirements.
-3. Gauge buyer seriousness by asking about target launch date or store products.
-4. If client shows interest or asks to proceed, TAKE ACTION ON THE CALL by stating: "I have reserved your priority consultation slot and dispatched our complete project proposal and portfolio link directly to your WhatsApp."
-5. Maintain a professional, persuasive tone. Do not use emojis in speech text.`;
+RULES:
+1. Speak in 1-2 natural sentences suitable for a phone call. Adapt to English, Telugu, or Hindi matching the client.
+2. Ask about 4 core items concisely: 1) Products to sell 2) Target launch timeline 3) Budget 4) Required features (UPI, WhatsApp, CRM).
+3. If client names a callback time (e.g. "Call me tomorrow at 4 PM"), confirm: "Perfect! I have booked your callback for [time] and sent your proposal to WhatsApp."
+4. If client shows high intent, state: "I have reserved your consultation slot and sent the project proposal to your WhatsApp."`;
 
   if (!llm) {
     const lastUserMsg = messages[messages.length - 1]?.content || '';
     const isSerious = /yes|sure|send|build|price|start|ok|schedule|book/i.test(lastUserMsg);
-    
-    let replyText = `Hello, I am Alex from WebAgency calling regarding your inquiry for building an E-Commerce website. Our ${packageInfo.title} starts at ${packageInfo.price} with payment gateway integration, mobile design, and admin panel. When are you looking to launch your store?`;
-    if (isSerious && !whatsappSent) {
-      replyText = `Thank you. I have reserved your priority consultation slot and sent the complete project proposal and portfolio link directly to your WhatsApp. Have a great day.`;
+    const callbackTime = extractCallbackTime(lastUserMsg);
+
+    let replyText = `Hello, I am Alex from WebAgency calling regarding your E-Commerce website inquiry. Our ${packageInfo.title} is ${packageInfo.price}. What products are you planning to sell, and what is your target launch date?`;
+    if (callbackTime) {
+      replyText = `Understood! I have booked your callback for ${callbackTime} and dispatched the project proposal link to your WhatsApp. Talk soon!`;
+    } else if (isSerious && !whatsappSent) {
+      replyText = `Excellent! I have reserved your consultation slot and sent the complete proposal link to your WhatsApp.`;
     }
     return { messages: [new AIMessage(replyText)] };
   }
@@ -146,21 +154,19 @@ GOALS:
 };
 
 /**
- * Node: On-Call Action, Buyer Rating & WhatsApp Context Generator
+ * Node: Action & WhatsApp Generator
  */
 const actionNode = async (state) => {
   const { messages, phoneNumber, productContext, whatsappSent, callSid } = state;
-
   const evaluation = await evaluateBuyerSeriousness(messages, productContext);
 
   let newWhatsappSent = whatsappSent;
   let whatsappDetails = state.whatsappDetails;
 
-  if (evaluation.isInterested && !whatsappSent && phoneNumber) {
-    console.log(`[LangGraph Action] Score: ${evaluation.ratingScore}/5 for ${phoneNumber}. Formatting WhatsApp summary...`);
+  if ((evaluation.isInterested || evaluation.bookedCallbackTime) && !whatsappSent && phoneNumber) {
     const packageInfo = await searchProducts(productContext);
     newWhatsappSent = true;
-    whatsappDetails = `E-Commerce Website Call Summary:\n- Requirements: ${evaluation.summary}\n- Recommended Package: ${packageInfo.title} (${packageInfo.price})\n- Lead Seriousness Score: ${evaluation.ratingScore}/5 (${evaluation.feedback})\n- Next Step: Priority Strategy Session Booked. View Proposal: https://webagency.example.com/proposal?client=${encodeURIComponent(phoneNumber)}`;
+    whatsappDetails = `E-Commerce Call Summary:\n- Requirements: ${evaluation.summary}\n- Recommended Package: ${packageInfo.title} (${packageInfo.price})\n- Lead Score: ${evaluation.ratingScore}/5 (${evaluation.feedback})\n- Callback Booked: ${evaluation.bookedCallbackTime || 'Confirmed'}\n- Proposal Link: https://webagency.example.com/proposal?client=${encodeURIComponent(phoneNumber)}`;
   }
 
   if (callSid) {
@@ -174,7 +180,7 @@ const actionNode = async (state) => {
               whatsappSent: newWhatsappSent,
               whatsappDetails,
               aiRatingScore: evaluation.ratingScore,
-              aiRatingFeedback: `${evaluation.feedback} | On-Call Action: ${evaluation.onCallAction}`,
+              aiRatingFeedback: `${evaluation.feedback} | ${evaluation.onCallAction}`,
               aiSummary: evaluation.summary,
               transcript: messages.map((m) => ({
                 role: m._getType() === 'human' ? 'user' : 'assistant',
@@ -185,7 +191,7 @@ const actionNode = async (state) => {
           { upsert: true, new: true, maxTimeMS: 2000 }
         );
       } catch (e) {
-        // Non-blocking
+        // Silent catch
       }
     });
   }
@@ -197,13 +203,11 @@ const actionNode = async (state) => {
     aiRatingScore: evaluation.ratingScore,
     aiRatingFeedback: evaluation.feedback,
     onCallAction: evaluation.onCallAction,
+    bookedCallbackTime: evaluation.bookedCallbackTime,
     aiSummary: evaluation.summary
   };
 };
 
-/**
- * Build & Compile State Graph
- */
 const builder = new StateGraph({ channels });
 builder.addNode('sales_node', salesNode);
 builder.addNode('action_node', actionNode);
@@ -214,9 +218,6 @@ builder.addEdge('sales_node', END);
 
 const salesAgentGraph = builder.compile();
 
-/**
- * Helper to process a single user speech input in graph
- */
 const processUserSpeech = async ({ callSid, phoneNumber, userSpeech, productContext, conversationHistory = [] }) => {
   const inputMessages = conversationHistory.map((item) =>
     item.role === 'user' ? new HumanMessage(item.content) : new AIMessage(item.content)
@@ -240,9 +241,11 @@ const processUserSpeech = async ({ callSid, phoneNumber, userSpeech, productCont
     responseSpeech: lastAiMessage ? lastAiMessage.content : 'Thank you for your time.',
     isInterested: result.isInterested,
     whatsappSent: result.whatsappSent,
+    whatsappDetails: result.whatsappDetails,
     aiRatingScore: result.aiRatingScore,
     aiRatingFeedback: result.aiRatingFeedback,
     onCallAction: result.onCallAction,
+    bookedCallbackTime: result.bookedCallbackTime,
     aiSummary: result.aiSummary,
     updatedMessages: result.messages
   };
