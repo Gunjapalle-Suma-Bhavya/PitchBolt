@@ -117,7 +117,6 @@ export default function App() {
       }
     } catch (err) {
       console.error(err);
-    } font-sans
     } finally {
       setLoading(false);
     }
