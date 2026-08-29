@@ -23,7 +23,7 @@ app.use('/api', apiRoutes);
 app.get('/', (req, res) => {
   res.json({
     status: 'online',
-    service: 'Swiggy FoodieAI Voice Agent & Bolti AI Call Server',
+    service: 'PitchBolt AI Telephony & Lead Qualification Server',
     version: '2.0.0',
     documentation: {
       outboundCallEndpoint: 'POST /api/calls/trigger',
@@ -35,7 +35,7 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`\n======================================================`);
-  console.log(`[Swiggy FoodieAI Server] Listening on port ${PORT}`);
+  console.log(`[PitchBolt AI Telephony Server] Listening on port ${PORT}`);
   console.log(`[API Base URL] http://localhost:${PORT}`);
   console.log(`======================================================\n`);
 });

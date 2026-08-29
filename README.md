@@ -2,7 +2,7 @@
 
 **PitchBolt**: Fast-paced AI Voice Agent matching quick on-call action and dispatch engine. Built with **LangChain**, **LangGraph**, **OpenAI**, **Bolti AI Voice Engine**, **MongoDB**, and **React**.
 
-> **Repository**: [Gunjapalle-Suma-Bhavya/ai-voice-recommendation-system](https://github.com/Gunjapalle-Suma-Bhavya/ai-voice-recommendation-system)  
+> **Repository**: [Gunjapalle-Suma-Bhavya/PitchBolt](https://github.com/Gunjapalle-Suma-Bhavya/PitchBolt)  
 > **Author & Contributor**: Gunjapalle-Suma-Bhavya  
 
 ---

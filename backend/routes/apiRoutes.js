@@ -8,7 +8,7 @@ const CallLog = require('../models/CallLog');
 let inMemoryCallLogs = [];
 
 /**
- * Endpoint to trigger an outbound AI phone call to sell E-Commerce website development
+ * Endpoint to trigger an outbound PitchBolt AI phone call to sell E-Commerce website development
  */
 router.post('/calls/trigger', async (req, res) => {
   const { phoneNumber, productQuery } = req.body;
@@ -29,8 +29,8 @@ router.post('/calls/trigger', async (req, res) => {
       isInterested: false,
       whatsappSent: false,
       aiRatingScore: 5,
-      aiRatingFeedback: 'E-Commerce Website Consultation Dispatched',
-      langsmithTraceUrl: `https://smith.langchain.com/o/project/${process.env.LANGCHAIN_PROJECT || 'Swiggy-Food-Agent'}`,
+      aiRatingFeedback: 'PitchBolt E-Commerce Website Consultation Dispatched',
+      langsmithTraceUrl: `https://smith.langchain.com/o/project/${process.env.LANGCHAIN_PROJECT || 'PitchBolt-Sales-Agent'}`,
       createdAt: new Date()
     };
 
@@ -42,17 +42,17 @@ router.post('/calls/trigger', async (req, res) => {
 
     return res.json({
       success: true,
-      message: 'E-Commerce Web Solutions AI Voice Call Dispatched to Mobile Phone!',
+      message: 'PitchBolt E-Commerce Web Solutions AI Voice Call Dispatched to Mobile Phone!',
       callSid: result.callSid,
       provider: result.provider || 'Bolti AI Voice',
       simulated: result.simulated
     });
   } catch (err) {
-    console.error('[Call Trigger Error]', err.message);
+    console.error('[PitchBolt Call Trigger Error]', err.message);
     const fallbackSid = `BOLTI_FALLBACK_${Date.now()}`;
     return res.json({
       success: true,
-      message: 'E-Commerce Web Solutions AI Voice Call Dispatched!',
+      message: 'PitchBolt E-Commerce Web Solutions AI Voice Call Dispatched!',
       callSid: fallbackSid,
       provider: 'Bolti AI Voice',
       simulated: true
@@ -112,8 +112,8 @@ router.post('/calls/simulate-speech', async (req, res) => {
     whatsappSent: agentResult.whatsappSent,
     whatsappDetails: agentResult.whatsappDetails || '',
     aiRatingScore: agentResult.aiRatingScore || 5,
-    aiRatingFeedback: `${agentResult.aiRatingFeedback || 'E-Commerce Consultation'} | Action: ${agentResult.onCallAction || 'Consulted on-call'}`,
-    langsmithTraceUrl: `https://smith.langchain.com/o/project/${process.env.LANGCHAIN_PROJECT || 'Swiggy-Food-Agent'}`,
+    aiRatingFeedback: `${agentResult.aiRatingFeedback || 'PitchBolt Consultation'} | Action: ${agentResult.onCallAction || 'Consulted on-call'}`,
+    langsmithTraceUrl: `https://smith.langchain.com/o/project/${process.env.LANGCHAIN_PROJECT || 'PitchBolt-Sales-Agent'}`,
     createdAt: new Date()
   };
 

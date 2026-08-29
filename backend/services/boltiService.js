@@ -1,9 +1,9 @@
 const axios = require('axios');
 
 /**
- * Minimalistic Bolti AI Voice Call Dispatch Service
+ * PitchBolt — Bolti AI Voice Telephony Outbound Dispatcher Service
  */
-const makeBoltiCall = async (toPhoneNumber, foodItem = 'Special Hyderabadi Dum Biryani') => {
+const makeBoltiCall = async (toPhoneNumber, productQuery = 'Growth Pro E-Commerce Portal') => {
   const token = (process.env.BOLTI_API_KEY || '').trim();
   const agentId = (process.env.BOLTI_AGENT_ID || 'b009b044-e9e4-4e09-8f34-a7b143f40a65').trim();
   const workspaceId = (process.env.BOLTI_WORKSPACE_ID || '23172290-fab3-40f7-bd08-c49129bfa6a5').trim();
@@ -16,7 +16,7 @@ const makeBoltiCall = async (toPhoneNumber, foodItem = 'Special Hyderabadi Dum B
     formattedTo = `+${formattedTo}`;
   }
 
-  console.log(`[Bolti AI Voice] Triggering Swiggy Food AI Call to ${formattedTo} for "${foodItem}"...`);
+  console.log(`[Bolti AI Voice] Triggering PitchBolt Sales Call to ${formattedTo} for "${productQuery}"...`);
 
   try {
     const url = `${baseUrl}/workspaces/${workspaceId}/agents/${agentId}/outbound-call`;
@@ -25,7 +25,7 @@ const makeBoltiCall = async (toPhoneNumber, foodItem = 'Special Hyderabadi Dum B
       {
         phone_number: formattedTo,
         recipient_phone_number: formattedTo,
-        user_data: { food_item: foodItem }
+        user_data: { product_query: productQuery }
       },
       {
         headers: {
