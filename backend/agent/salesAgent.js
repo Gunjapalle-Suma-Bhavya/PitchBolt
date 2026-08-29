@@ -6,12 +6,13 @@ const CallLog = require('../models/CallLog');
 
 // Initialize OpenAI LLM
 const getLLM = () => {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = (process.env.OPENAI_API_KEY || '').trim();
   if (!apiKey || apiKey.includes('your_')) {
     return null;
   }
 
-  const baseURL = process.env.OPENAI_BASE_URL || (apiKey.startsWith('sk-live-') || apiKey.startsWith('sk-or-') ? 'https://openrouter.ai/api/v1' : undefined);
+  // Only use OpenRouter base URL if explicitly provided or key starts with sk-or-
+  const baseURL = process.env.OPENAI_BASE_URL || (apiKey.startsWith('sk-or-') ? 'https://openrouter.ai/api/v1' : undefined);
 
   return new ChatOpenAI({
     modelName: process.env.OPENAI_MODEL || 'gpt-4o-mini',
@@ -105,6 +106,7 @@ JSON only:
       bookedCallbackTime: detectedCallback || parsed.bookedCallbackTime || ''
     };
   } catch (err) {
+    console.warn('[LLM Evaluator Warning]', err.message);
     const isSerious = /build|start|price|yes|sure|send|schedule|book/i.test(lastUserMsg);
     return {
       ratingScore: isSerious ? 5 : 3,
@@ -134,23 +136,29 @@ RULES:
 3. If client names a callback time (e.g. "Call me tomorrow at 4 PM"), confirm: "Perfect! PitchBolt has booked your callback for [time] and sent your proposal to WhatsApp."
 4. If client shows high intent, state: "PitchBolt has reserved your consultation slot and sent the project proposal to your WhatsApp."`;
 
-  if (!llm) {
-    const lastUserMsg = messages[messages.length - 1]?.content || '';
-    const isSerious = /yes|sure|send|build|price|start|ok|schedule|book/i.test(lastUserMsg);
-    const callbackTime = extractCallbackTime(lastUserMsg);
+  const lastUserMsg = messages[messages.length - 1]?.content || '';
+  const isSerious = /yes|sure|send|build|price|start|ok|schedule|book/i.test(lastUserMsg);
+  const callbackTime = extractCallbackTime(lastUserMsg);
 
-    let replyText = `Hello, I am Alex from PitchBolt calling regarding your E-Commerce website inquiry. Our ${packageInfo.title} is ${packageInfo.price}. What products are you planning to sell, and what is your target launch date?`;
-    if (callbackTime) {
-      replyText = `Understood! PitchBolt has booked your callback for ${callbackTime} and dispatched the project proposal link to your WhatsApp. Talk soon!`;
-    } else if (isSerious && !whatsappSent) {
-      replyText = `Excellent! PitchBolt has reserved your consultation slot and sent the complete proposal link to your WhatsApp.`;
-    }
-    return { messages: [new AIMessage(replyText)] };
+  let fallbackReply = `Hello, I am Alex from PitchBolt calling regarding your E-Commerce website inquiry. Our ${packageInfo.title} is ${packageInfo.price}. What products are you planning to sell, and what is your target launch date?`;
+  if (callbackTime) {
+    fallbackReply = `Understood! PitchBolt has booked your callback for ${callbackTime} and dispatched the project proposal link to your WhatsApp. Talk soon!`;
+  } else if (isSerious && !whatsappSent) {
+    fallbackReply = `Excellent! PitchBolt has reserved your consultation slot and sent the complete proposal link to your WhatsApp.`;
   }
 
-  const formattedMessages = [new SystemMessage(systemPrompt), ...messages];
-  const response = await llm.invoke(formattedMessages);
-  return { messages: [response] };
+  if (!llm) {
+    return { messages: [new AIMessage(fallbackReply)] };
+  }
+
+  try {
+    const formattedMessages = [new SystemMessage(systemPrompt), ...messages];
+    const response = await llm.invoke(formattedMessages);
+    return { messages: [response] };
+  } catch (err) {
+    console.warn('[LLM Sales Speech Warning]', err.message);
+    return { messages: [new AIMessage(fallbackReply)] };
+  }
 };
 
 /**
