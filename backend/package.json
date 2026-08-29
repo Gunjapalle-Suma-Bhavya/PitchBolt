@@ -1,7 +1,7 @@
 {
-  "name": "ai-telephony-backend",
+  "name": "pitchbolt-backend",
   "version": "1.0.0",
-  "description": "AI-powered Telephony Sales & Lead Qualification Backend",
+  "description": "PitchBolt - Fast-paced AI Telephony Sales & Lead Qualification Backend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

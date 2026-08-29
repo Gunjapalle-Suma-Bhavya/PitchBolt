@@ -68,9 +68,9 @@ const evaluateBuyerSeriousness = async (messages, productContext) => {
     return {
       ratingScore: score,
       isInterested: isSerious,
-      onCallAction: detectedCallback ? `Callback Booked: ${detectedCallback}` : (score >= 4 ? 'Scheduled Strategy Session & Proposal' : 'Consulted on Features'),
+      onCallAction: detectedCallback ? `PitchBolt Callback Booked: ${detectedCallback}` : (score >= 4 ? 'Scheduled Strategy Session & Proposal' : 'Consulted on Features'),
       feedback: isSerious ? 'High Intent Lead' : 'Moderate Intent Lead',
-      summary: `Inquiry for ${productContext}`,
+      summary: `PitchBolt Inquiry for ${productContext}`,
       bookedCallbackTime: detectedCallback
     };
   }
@@ -99,7 +99,7 @@ JSON only:
     return {
       ratingScore: parsed.ratingScore || 3,
       isInterested: parsed.isInterested ?? false,
-      onCallAction: detectedCallback ? `Callback Booked: ${detectedCallback}` : (parsed.onCallAction || 'Consulted client'),
+      onCallAction: detectedCallback ? `PitchBolt Callback Booked: ${detectedCallback}` : (parsed.onCallAction || 'Consulted client'),
       feedback: parsed.feedback || 'Evaluated intent',
       summary: parsed.summary || 'E-Commerce inquiry',
       bookedCallbackTime: detectedCallback || parsed.bookedCallbackTime || ''
@@ -109,7 +109,7 @@ JSON only:
     return {
       ratingScore: isSerious ? 5 : 3,
       isInterested: isSerious,
-      onCallAction: detectedCallback ? `Callback Booked: ${detectedCallback}` : 'Consulted on Features',
+      onCallAction: detectedCallback ? `PitchBolt Callback Booked: ${detectedCallback}` : 'Consulted on Features',
       feedback: 'Evaluated intent',
       summary: 'E-Commerce consultation',
       bookedCallbackTime: detectedCallback
@@ -125,25 +125,25 @@ const salesNode = async (state) => {
   const llm = getLLM();
   const packageInfo = await searchProducts(productContext);
 
-  const systemPrompt = `You are Alex, a Senior E-Commerce Consultant selling web development.
+  const systemPrompt = `You are Alex, a Senior E-Commerce Consultant at PitchBolt selling web development.
 Context: ${packageInfo.title} (${packageInfo.price}). Features: ${packageInfo.specs}.
 
 RULES:
 1. Speak in 1-2 natural sentences suitable for a phone call. Adapt to English, Telugu, or Hindi matching the client.
 2. Ask about 4 core items concisely: 1) Products to sell 2) Target launch timeline 3) Budget 4) Required features (UPI, WhatsApp, CRM).
-3. If client names a callback time (e.g. "Call me tomorrow at 4 PM"), confirm: "Perfect! I have booked your callback for [time] and sent your proposal to WhatsApp."
-4. If client shows high intent, state: "I have reserved your consultation slot and sent the project proposal to your WhatsApp."`;
+3. If client names a callback time (e.g. "Call me tomorrow at 4 PM"), confirm: "Perfect! PitchBolt has booked your callback for [time] and sent your proposal to WhatsApp."
+4. If client shows high intent, state: "PitchBolt has reserved your consultation slot and sent the project proposal to your WhatsApp."`;
 
   if (!llm) {
     const lastUserMsg = messages[messages.length - 1]?.content || '';
     const isSerious = /yes|sure|send|build|price|start|ok|schedule|book/i.test(lastUserMsg);
     const callbackTime = extractCallbackTime(lastUserMsg);
 
-    let replyText = `Hello, I am Alex from WebAgency calling regarding your E-Commerce website inquiry. Our ${packageInfo.title} is ${packageInfo.price}. What products are you planning to sell, and what is your target launch date?`;
+    let replyText = `Hello, I am Alex from PitchBolt calling regarding your E-Commerce website inquiry. Our ${packageInfo.title} is ${packageInfo.price}. What products are you planning to sell, and what is your target launch date?`;
     if (callbackTime) {
-      replyText = `Understood! I have booked your callback for ${callbackTime} and dispatched the project proposal link to your WhatsApp. Talk soon!`;
+      replyText = `Understood! PitchBolt has booked your callback for ${callbackTime} and dispatched the project proposal link to your WhatsApp. Talk soon!`;
     } else if (isSerious && !whatsappSent) {
-      replyText = `Excellent! I have reserved your consultation slot and sent the complete proposal link to your WhatsApp.`;
+      replyText = `Excellent! PitchBolt has reserved your consultation slot and sent the complete proposal link to your WhatsApp.`;
     }
     return { messages: [new AIMessage(replyText)] };
   }
@@ -166,7 +166,7 @@ const actionNode = async (state) => {
   if ((evaluation.isInterested || evaluation.bookedCallbackTime) && !whatsappSent && phoneNumber) {
     const packageInfo = await searchProducts(productContext);
     newWhatsappSent = true;
-    whatsappDetails = `E-Commerce Call Summary:\n- Requirements: ${evaluation.summary}\n- Recommended Package: ${packageInfo.title} (${packageInfo.price})\n- Lead Score: ${evaluation.ratingScore}/5 (${evaluation.feedback})\n- Callback Booked: ${evaluation.bookedCallbackTime || 'Confirmed'}\n- Proposal Link: https://webagency.example.com/proposal?client=${encodeURIComponent(phoneNumber)}`;
+    whatsappDetails = `PitchBolt Call Summary:\n- Requirements: ${evaluation.summary}\n- Recommended Package: ${packageInfo.title} (${packageInfo.price})\n- Lead Score: ${evaluation.ratingScore}/5 (${evaluation.feedback})\n- Callback Booked: ${evaluation.bookedCallbackTime || 'Confirmed'}\n- Proposal Link: https://pitchbolt.agency/proposal?client=${encodeURIComponent(phoneNumber)}`;
   }
 
   if (callSid) {
