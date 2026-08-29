@@ -7,17 +7,18 @@ const CallLog = require('../models/CallLog');
 // Initialize OpenAI LLM
 const getLLM = () => {
   const apiKey = (process.env.OPENAI_API_KEY || '').trim();
-  if (!apiKey || apiKey.includes('your_')) {
+  if (!apiKey || apiKey.includes('your_') || apiKey.length < 20) {
     return null;
   }
 
-  // Only use OpenRouter base URL if explicitly provided or key starts with sk-or-
+  // Support OpenRouter keys starting with sk-or- or custom OPENAI_BASE_URL
   const baseURL = process.env.OPENAI_BASE_URL || (apiKey.startsWith('sk-or-') ? 'https://openrouter.ai/api/v1' : undefined);
 
   return new ChatOpenAI({
     modelName: process.env.OPENAI_MODEL || 'gpt-4o-mini',
     temperature: 0.7,
     openAIApiKey: apiKey,
+    maxRetries: 0,
     configuration: baseURL ? { baseURL } : undefined
   });
 };
@@ -106,7 +107,6 @@ JSON only:
       bookedCallbackTime: detectedCallback || parsed.bookedCallbackTime || ''
     };
   } catch (err) {
-    console.warn('[LLM Evaluator Warning]', err.message);
     const isSerious = /build|start|price|yes|sure|send|schedule|book/i.test(lastUserMsg);
     return {
       ratingScore: isSerious ? 5 : 3,
@@ -156,7 +156,6 @@ RULES:
     const response = await llm.invoke(formattedMessages);
     return { messages: [response] };
   } catch (err) {
-    console.warn('[LLM Sales Speech Warning]', err.message);
     return { messages: [new AIMessage(fallbackReply)] };
   }
 };
