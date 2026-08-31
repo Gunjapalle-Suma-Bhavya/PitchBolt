@@ -53,6 +53,24 @@ export default function App() {
     }
   };
 
+  const handleSelectCallLog = (log) => {
+    setActiveCallSid(log.callSid);
+    setPhoneNumber(log.phoneNumber || phoneNumber);
+    if (log.initialProductQuery) {
+      setProductQuery(log.initialProductQuery);
+      searchProduct(log.initialProductQuery);
+    }
+    if (log.transcript && log.transcript.length > 0) {
+      setActiveTranscript(log.transcript);
+    } else {
+      setActiveTranscript([]);
+    }
+    setLatestSeriousnessScore(log.aiRatingScore || null);
+    setOnCallActionTaken(log.aiRatingFeedback || '');
+    setWhatsappContext(log.whatsappDetails || '');
+    setCallStatusMsg(`Loaded call record [${log.callSid}] into PitchBolt Sales Console.`);
+  };
+
   const handleTriggerCall = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -63,14 +81,33 @@ export default function App() {
         productQuery
       });
       if (res.data?.success) {
-        setActiveCallSid(res.data.callSid);
-        setCallStatusMsg(`PitchBolt Sales Agent calling ${phoneNumber}...`);
-        setActiveTranscript([
-          {
-            role: 'assistant',
-            content: `Hello, I am Alex from PitchBolt calling regarding your inquiry for building an E-Commerce website. Our ${productQuery} package comes fully equipped with mobile design, payment gateways, and CRM integration. When are you looking to launch your online store?`
+        const callSid = res.data.callSid;
+        setActiveCallSid(callSid);
+        setCallStatusMsg(`PitchBolt Sales Agent calling ${phoneNumber}... Fetching initial AI speech...`);
+
+        // Fetch dynamic initial opening speech from LLM
+        try {
+          const initRes = await axios.post('/api/calls/simulate-speech', {
+            callSid,
+            phoneNumber,
+            userSpeech: '',
+            productQuery
+          });
+          if (initRes.data?.aiResponse) {
+            setActiveTranscript([
+              { role: 'assistant', content: initRes.data.aiResponse }
+            ]);
+            if (initRes.data.aiRatingScore) setLatestSeriousnessScore(initRes.data.aiRatingScore);
+            if (initRes.data.onCallAction) setOnCallActionTaken(initRes.data.onCallAction);
           }
-        ]);
+        } catch (initErr) {
+          setActiveTranscript([
+            {
+              role: 'assistant',
+              content: `Hello, I am Alex from PitchBolt calling regarding your inquiry for ${productQuery}. When are you looking to launch your online store?`
+            }
+          ]);
+        }
         fetchLogs();
       }
     } catch (err) {
@@ -382,23 +419,38 @@ export default function App() {
                       </td>
                     </tr>
                   ) : (
-                    callLogs.map((log) => (
-                      <tr key={log.callSid} className="hover:bg-slate-800/40 transition">
-                        <td className="py-2.5 px-3 font-mono text-slate-400">{log.callSid}</td>
-                        <td className="py-2.5 px-3 font-semibold text-white">{log.phoneNumber}</td>
-                        <td className="py-2.5 px-3 text-slate-300">{log.initialProductQuery}</td>
-                        <td className="py-2.5 px-3 font-bold text-indigo-400">
-                          {log.aiRatingScore || 5} / 5
-                        </td>
-                        <td className="py-2.5 px-3">
-                          {log.whatsappSent ? (
-                            <span className="text-emerald-400 font-medium">Dispatched</span>
-                          ) : (
-                            <span className="text-slate-500">Pending</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))
+                    callLogs.map((log) => {
+                      const isSelected = activeCallSid === log.callSid;
+                      return (
+                        <tr
+                          key={log.callSid}
+                          onClick={() => handleSelectCallLog(log)}
+                          title="Click to view full transcript & qualification details"
+                          className={`cursor-pointer transition ${
+                            isSelected
+                              ? 'bg-indigo-950/60 border-l-4 border-indigo-500 font-medium'
+                              : 'hover:bg-slate-800/40'
+                          }`}
+                        >
+                          <td className="py-2.5 px-3 font-mono text-slate-400 flex items-center gap-1.5">
+                            {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0 animate-pulse"></span>}
+                            <span>{log.callSid}</span>
+                          </td>
+                          <td className="py-2.5 px-3 font-semibold text-white">{log.phoneNumber}</td>
+                          <td className="py-2.5 px-3 text-slate-300">{log.initialProductQuery}</td>
+                          <td className="py-2.5 px-3 font-bold text-indigo-400">
+                            {log.aiRatingScore || 5} / 5
+                          </td>
+                          <td className="py-2.5 px-3">
+                            {log.whatsappSent ? (
+                              <span className="text-emerald-400 font-medium">Dispatched</span>
+                            ) : (
+                              <span className="text-slate-500">Pending</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
